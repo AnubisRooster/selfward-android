@@ -23,6 +23,7 @@ class LlamaCppLocalService : LocalLLMService {
     override suspend fun isModelLoaded(): Boolean = model?.isLoaded ?: false
 
     override suspend fun load(modelSpec: LocalModel, path: String) {
+        model?.close()
         val config = LlamaConfig().apply {
             contextSize = modelSpec.contextSize
             threads = Runtime.getRuntime().availableProcessors().coerceAtLeast(2)

@@ -13,6 +13,7 @@ import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
 import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
+import com.theraipist.core.repository.Session
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.repository.SessionSummary
 import com.theraipist.core.safety.SafetyGuardrails
@@ -24,6 +25,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -33,23 +36,41 @@ class ChatViewModelTest {
 
     private class FakeSessionRepository : SessionRepository {
         val stored = mutableListOf<Message>()
-        override suspend fun createSession(persona: Persona, title: String): com.theraipist.core.repository.Session {
-            return com.theraipist.core.repository.Session("s1", persona, title, 0, 0)
+        private val sessions = mutableListOf<Session>()
+        private val messagesBySession = mutableMapOf<String, MutableList<Message>>()
+        private var counter = 0
+
+        override suspend fun createSession(persona: Persona, title: String): Session {
+            counter += 1
+            val session = Session("s$counter", persona, title, counter.toLong(), counter.toLong())
+            sessions.add(session)
+            messagesBySession[session.id] = mutableListOf()
+            return session
         }
+
         override suspend fun appendMessage(sessionId: String, message: Message) {
             stored.add(message)
+            messagesBySession.getOrPut(sessionId) { mutableListOf() }.add(message)
         }
+
         override suspend fun getMessages(sessionId: String): List<Message> =
-            stored.filter { it.role != Role.SYSTEM }
-        override suspend fun listSessions(): List<SessionSummary> = emptyList()
+            messagesBySession[sessionId]?.filter { it.role != Role.SYSTEM } ?: emptyList()
+
+        override suspend fun listSessions(): List<SessionSummary> =
+            sessions.map { SessionSummary(it.id, it.title, it.updatedAt) }
     }
 
-    private class FakeChatService : ChatService {
+    private class FakeChatService(private val replyPrefix: String = "reflection: ") : ChatService {
         var lastMessages: List<Message>? = null
         override suspend fun send(messages: List<Message>): String {
             lastMessages = messages
-            return "reflection: ${messages.last().content}"
+            return "$replyPrefix${messages.last().content}"
         }
+    }
+
+    private class FailingChatService : ChatService {
+        override suspend fun send(messages: List<Message>): String =
+            throw RuntimeException("network unreachable")
     }
 
     private class FakeTtsService : TtsService {
@@ -79,11 +100,13 @@ class ChatViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun buildVm(): Pair<ChatViewModel, FakeSessionRepository> {
-        val repo = FakeSessionRepository()
+    private fun buildVm(
+        chatService: ChatService = FakeChatService(),
+        repo: FakeSessionRepository = FakeSessionRepository()
+    ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
             repo,
-            FakeChatService(),
+            chatService,
             ModalityRouter,
             TherapyPromptBuilder,
             SafetyGuardrails,
@@ -130,5 +153,55 @@ class ChatViewModelTest {
         vm.send("I had a dream about flying")
         val state = vm.uiState.value
         assertTrue(state.graphNodes.isNotEmpty())
+    }
+
+    @Test
+    fun send_appliesModalitySpecificSystemPrompt() = runTest {
+        val chatService = FakeChatService()
+        val (vm, _) = buildVm(chatService)
+        vm.send("I had a dream about flying last night")
+        val systemMessage = chatService.lastMessages?.firstOrNull { it.role == Role.SYSTEM }
+        assertNotNull(systemMessage)
+        assertTrue(systemMessage!!.content.contains("Jungian analyst"))
+    }
+
+    @Test
+    fun assistantReply_boundaryViolationIsIntercepted() = runTest {
+        val chatService = FakeChatService(replyPrefix = "you need medication for ")
+        val (vm, _) = buildVm(chatService)
+        vm.send("I'm struggling today")
+        val assistantMessage = vm.uiState.value.messages.first { it.role == Role.ASSISTANT }
+        assertFalse(assistantMessage.content.contains("you need medication"))
+    }
+
+    @Test
+    fun send_surfacesErrorAndResetsSendingOnFailure() = runTest {
+        val (vm, _) = buildVm(FailingChatService())
+        vm.send("hello")
+        val state = vm.uiState.value
+        assertEquals(false, state.isSending)
+        assertTrue(!state.errorMessage.isNullOrBlank())
+    }
+
+    @Test
+    fun reEntry_showsCheckInAfterPriorCrisisSession() = runTest {
+        val repo = FakeSessionRepository()
+        val (vm1, _) = buildVm(repo = repo)
+        vm1.send("I want to kill myself")
+
+        val (vm2, _) = buildVm(repo = repo)
+        vm2.send("hi again")
+        assertTrue(!vm2.uiState.value.reEntryMessage.isNullOrBlank())
+    }
+
+    @Test
+    fun reEntry_staysNullWithoutPriorCrisis() = runTest {
+        val repo = FakeSessionRepository()
+        val (vm1, _) = buildVm(repo = repo)
+        vm1.send("just checking in today")
+
+        val (vm2, _) = buildVm(repo = repo)
+        vm2.send("hi again")
+        assertTrue(vm2.uiState.value.reEntryMessage == null)
     }
 }

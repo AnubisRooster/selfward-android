@@ -3,6 +3,7 @@ package com.theraipist.data.settings
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.chat.Provider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -53,6 +54,22 @@ class SecureSettings @Inject constructor(
             .putString(KEY_API_KEY, apiKey)
             .putString(KEY_MODEL, model)
             .apply()
+    }
+
+    /** Built fresh from the current stored values, so callers always see the latest saved settings. */
+    fun apiConfig(): ApiConfig {
+        val currentProvider = provider
+        val baseUrl = when (currentProvider) {
+            Provider.OPENAI -> "https://api.openai.com/v1"
+            Provider.OPENROUTER -> "https://openrouter.ai/api/v1"
+            Provider.ANTHROPIC -> "https://api.anthropic.com/v1"
+        }
+        return ApiConfig(
+            provider = currentProvider,
+            baseUrl = baseUrl,
+            apiKey = apiKey ?: "",
+            model = model
+        )
     }
 
     companion object {

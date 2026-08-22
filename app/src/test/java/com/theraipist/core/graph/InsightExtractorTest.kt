@@ -17,9 +17,9 @@ class InsightExtractorTest {
         """.trimIndent()
         val out = InsightExtractor.extract(text)
         assertEquals(3, out.size)
-        val joined = out.joinToString(" ")
-        assertTrue(joined.contains("I avoid"))
-        assertTrue(joined.contains("Small steps"))
+        assertEquals("I avoid vulnerability out of fear.", out[0])
+        assertEquals("My anger protects a softer part of me.", out[1])
+        assertEquals("Small steps build safety.", out[2])
     }
 
     @Test

@@ -9,5 +9,7 @@ data class ChatUiState(
     val isSending: Boolean = false,
     val crisisLevel: CrisisLevel? = null,
     val resourceMessage: String? = null,
-    val graphNodes: List<GraphNode> = emptyList()
+    val graphNodes: List<GraphNode> = emptyList(),
+    val errorMessage: String? = null,
+    val reEntryMessage: String? = null
 )

@@ -5,3 +5,5 @@ import com.theraipist.core.model.Message
 interface ChatService {
     suspend fun send(messages: List<Message>): String
 }
+
+class ChatServiceException(message: String) : Exception(message)

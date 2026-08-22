@@ -61,6 +61,28 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     }
 
     Column(Modifier.fillMaxSize()) {
+        state.reEntryMessage?.let { message ->
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(message, style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { viewModel.clearReEntry() }) { Text("Okay") }
+                }
+            }
+        }
+        state.errorMessage?.let { message ->
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(message, style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = { viewModel.clearError() }) { Text("Dismiss") }
+                }
+            }
+        }
         state.crisisLevel?.let { level ->
             Surface(
                 color = if (level.name == "CRITICAL")

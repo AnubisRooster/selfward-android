@@ -3,6 +3,7 @@ package com.theraipist.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theraipist.core.PersonaHolder
+import com.theraipist.core.GraphHolder
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
@@ -25,7 +26,8 @@ class ChatViewModel @Inject constructor(
     private val modalityRouter: ModalityRouter,
     private val promptBuilder: TherapyPromptBuilder,
     private val safety: SafetyGuardrails,
-    private val personaHolder: PersonaHolder
+    private val personaHolder: PersonaHolder,
+    private val graphHolder: GraphHolder
 ) : ViewModel() {
 
     private var sessionId: String? = null
@@ -67,8 +69,14 @@ class ChatViewModel @Inject constructor(
                 modality = modality.name
             )
             sessionRepository.appendMessage(sid, assistantMessage)
+            val insights = com.theraipist.core.graph.InsightExtractor.extract(reply)
+            graphHolder.addInsights(insights)
             _uiState.update {
-                it.copy(messages = it.messages + assistantMessage, isSending = false)
+                it.copy(
+                    messages = it.messages + assistantMessage,
+                    isSending = false,
+                    graphNodes = graphHolder.nodes.value
+                )
             }
         }
     }

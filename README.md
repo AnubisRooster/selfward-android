@@ -60,6 +60,10 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   crisis resources) added as a 5th nav tab.
 - **Phase 10/11 — Docs**: `PRIVACY.md`, `MEMORY.md` (architecture/status), and
   `store/listing.md` (Play store listing + data-safety summary).
+- **Phase 14 — Memory graph wiring** (in progress): `GraphHolder` (`@Singleton`)
+  accumulates `InsightExtractor` output; `ChatViewModel` adds insights after each
+  assistant reply and exposes `graphNodes`; `GraphScreen` shows live nodes via
+  `GraphViewModel`. Verified by `assistantReply_extractsInsightsIntoGraph`.
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

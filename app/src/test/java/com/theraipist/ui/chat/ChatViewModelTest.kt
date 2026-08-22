@@ -1,6 +1,7 @@
 package com.theraipist.ui.chat
 
 import com.theraipist.core.PersonaHolder
+import com.theraipist.core.GraphHolder
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
@@ -66,7 +67,8 @@ class ChatViewModelTest {
             ModalityRouter,
             TherapyPromptBuilder,
             SafetyGuardrails,
-            PersonaHolder()
+            PersonaHolder(),
+            GraphHolder()
         )
         return vm to repo
     }
@@ -97,5 +99,13 @@ class ChatViewModelTest {
         val state = vm.uiState.value
         assertTrue(state.crisisLevel != null)
         assertTrue(!state.resourceMessage.isNullOrBlank())
+    }
+
+    @Test
+    fun assistantReply_extractsInsightsIntoGraph() = runTest {
+        val (vm, _) = buildVm()
+        vm.send("I had a dream about flying")
+        val state = vm.uiState.value
+        assertTrue(state.graphNodes.isNotEmpty())
     }
 }

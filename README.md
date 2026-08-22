@@ -27,8 +27,17 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   mappers, and `RoomSessionRepository` implementing the now-`suspend`
   `SessionRepository`. Verified with `SessionMappersTest` (pure) and
   `RoomSessionRepositoryTest` (Robolectric + in-memory Room).
-- Phases 3+ (domain mechanics, on-device LLM, TTS/STT, full Compose UI, Play Store
-  listing) are planned. See the iOS repo for the target feature set.
+- **Phase 3 — domain mechanics** (done): `TherapyModality` + `ModalityRouter`,
+  `SseParser` (OpenAI-compatible streaming), `TherapyGraph` (in-memory knowledge
+  graph) + `InsightExtractor`, and `SafetyGuardrails.reEntryCheck`.
+- **Phase 4 — on-device LLM + embeddings** (in progress): `LocalLLMService`
+  interface + `LlamaCppLocalService` (llama.cpp via `org.codeshipping:llama-kotlin-android`,
+  Kotlin 2.0.21), `GGUFModelCatalog` + `ModelSelector`, `EmbeddingProvider`
+  interface + `OnnxEmbeddingProvider` (ONNX Runtime Mobile), and `MemoryVectorStore`
+  (cosine retrieval). Kotlin bumped to 2.0.21 and Compose migrated to the official
+  `org.jetbrains.kotlin.plugin.compose` plugin to consume the 2.0-compiled library.
+  Pure logic verified with `GGUFModelCatalogTest`, `ModelSelectorTest`,
+  `CosineSimilarityTest`, `MemoryVectorStoreTest`.
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

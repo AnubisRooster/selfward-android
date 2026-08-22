@@ -1,9 +1,10 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("androidx.room")
-    kotlin("plugin.serialization") version "1.9.24"
+    kotlin("plugin.serialization") version "2.0.21"
     kotlin("kapt")
 }
 
@@ -42,10 +43,6 @@ android {
         buildConfig = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.14"
-    }
-
     room {
         schemaDirectory("$projectDir/schemas")
     }
@@ -59,6 +56,14 @@ android {
 
     testOptions {
         unitTests.isIncludeAndroidResources = true
+    }
+
+    configurations.all {
+        resolutionStrategy {
+            // The llama.cpp wrapper pulls androidx.core:core-ktx 1.17.0 (needs
+            // compileSdk 35). Pin to our 34-compatible version.
+            force("androidx.core:core-ktx:1.13.1")
+        }
     }
 }
 
@@ -100,6 +105,9 @@ dependencies {
 
     // ONNX Runtime Mobile — on-device embeddings (replaces Apple NLEmbedding)
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
+
+    // llama.cpp on-device LLM (GGUF), Kotlin-first wrapper (compiled with Kotlin 2.0.21)
+    implementation("org.codeshipping:llama-kotlin-android:0.1.7")
 
     // Secure storage (replaces iOS Keychain)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")

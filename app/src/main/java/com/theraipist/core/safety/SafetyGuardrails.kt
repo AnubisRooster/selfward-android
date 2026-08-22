@@ -23,4 +23,12 @@ object SafetyGuardrails {
     }
 
     fun resourceMessage(): String = TherapyConfig.RESOURCE_MESSAGE
+
+    /**
+     * On return after a prior crisis, invite a gentle check-in before resuming
+     * work. Returns null when no previous crisis was recorded.
+     */
+    fun reEntryCheck(previousCrisis: Boolean): String? = if (previousCrisis) {
+        "Welcome back. Before we continue, I want to gently check in — how are you feeling in this moment?"
+    } else null
 }

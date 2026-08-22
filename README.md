@@ -22,24 +22,34 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
 - **Phase 0 — scaffold**: Gradle/Compose project, CI, and the portable therapy
   config (`TherapyConfig.kt`) are in place. The app currently shows a placeholder
   screen listing the 15 modalities.
-- Phases 1–3 (data layer, domain services, on-device LLM, TTS/STT, full Compose
-  UI, Play Store listing) are planned. See the iOS repo for the target feature set.
+- **Phase 2 — Room persistence** (done): `sessions`, `messages`, `insights`,
+  `graph_nodes`, `graph_edges` entities + DAOs, `TherAIpistDatabase`, domain↔entity
+  mappers, and `RoomSessionRepository` implementing the now-`suspend`
+  `SessionRepository`. Verified with `SessionMappersTest` (pure) and
+  `RoomSessionRepositoryTest` (Robolectric + in-memory Room).
+- Phases 3+ (domain mechanics, on-device LLM, TTS/STT, full Compose UI, Play Store
+  listing) are planned. See the iOS repo for the target feature set.
 
-### Phase 1 (in progress) — domain core + cloud chat, TDD
+### Phase 1 — domain core + cloud chat, TDD (done)
 
 Pure-Kotlin, platform-independent core under `app/src/main/java/com/theraipist/core/`,
 with JVM unit tests under `app/src/test/java/com/theraipist/core/`:
 
 - `model` — `Message`, `Role`, `Persona`.
-- `safety/SafetyGuardrails` — crisis + boundary detection over `TherapyConfig`.
+- `safety/SafetyGuardrails` — crisis + boundary detection, re-entry check.
 - `prompt/TherapyPromptBuilder` — persona-aware system prompts, modality
   instructions, and conversation assembly.
 - `chat` — `ChatService` interface + `CloudChatService` (Ktor OpenAI-compatible
-  `/chat/completions`, bearer auth, JSON; SSE streaming deferred to Phase 3).
+  `/chat/completions`, bearer auth, JSON) and engine-free `ChatProtocol` +
+  `SseParser` for streaming.
+- `modality` — `TherapyModality` enum + `ModalityRouter`.
+- `graph` — `TherapyGraph` (in-memory knowledge graph) + `InsightExtractor`.
 - `repository` — `SessionRepository` interface + `InMemorySessionRepository`.
 
 Tests: `SafetyGuardrailsTest`, `TherapyPromptBuilderTest`, `ChatProtocolTest`,
-`InMemorySessionRepositoryTest` — **all green in CI** (`testDebugUnitTest`).
+`InMemorySessionRepositoryTest`, `ModalityRouterTest`, `SseParserTest`,
+`TherapyGraphTest`, `InsightExtractorTest` — **all green in CI**
+(`testDebugUnitTest`).
 
 > Note: `CloudChatService` keeps request-building and response-parsing in the
 > engine-free `ChatProtocol` object so they can be unit-tested without a Ktor

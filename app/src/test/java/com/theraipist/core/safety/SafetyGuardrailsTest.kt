@@ -35,4 +35,16 @@ class SafetyGuardrailsTest {
     fun resourceMessageIsNonEmpty() {
         assertTrue(SafetyGuardrails.resourceMessage().isNotBlank())
     }
+
+    @Test
+    fun reEntryCheckReturnsMessageAfterCrisis() {
+        val msg = SafetyGuardrails.reEntryCheck(true)
+        assertNotNull(msg)
+        assertTrue(msg!!.isNotBlank())
+    }
+
+    @Test
+    fun reEntryCheckReturnsNullWithoutPriorCrisis() {
+        assertNull(SafetyGuardrails.reEntryCheck(false))
+    }
 }

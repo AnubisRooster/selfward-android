@@ -4,7 +4,6 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("androidx.room")
     kotlin("plugin.serialization") version "1.9.24"
-    kotlin("kapt") version "1.9.24"
 }
 
 android {

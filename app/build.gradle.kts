@@ -85,12 +85,12 @@ dependencies {
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
 
-    // Ktor — cloud LLM + TTS REST, with SSE streaming
+    // Ktor — cloud LLM + TTS REST; SSE streaming parsed manually from the
+    // raw ByteReadChannel (ktor-sse is Ktor 3.x only).
     implementation("io.ktor:ktor-client-android:2.3.12")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
     implementation("io.ktor:ktor-client-serialization:2.3.12")
     implementation("io.ktor:ktor-client-logging:2.3.12")
-    implementation("io.ktor:ktor-sse:2.3.12")
 
     // ONNX Runtime Mobile — on-device embeddings (replaces Apple NLEmbedding)
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.18.0")
@@ -98,8 +98,7 @@ dependencies {
     // Secure storage (replaces iOS Keychain)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    // Markdown rendering
-    implementation("io.noties.markwon:markwon-core:4.6.2")
+    // Markdown rendering — added in Phase 7 (UI) with verified coordinates.
 
     // Coroutines + serialization
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

@@ -107,20 +107,14 @@ class ChatViewModel @Inject constructor(
     }
 
     private suspend fun produceReply(conversation: List<Message>): String {
-        if (modelSettings.useLocalModel.value) {
-            val id = modelSettings.localModelId.value
-            val model = id?.let { GGUFModelCatalog.byId(it) }
-            if (model != null && ensureLocalModel(model)) {
-                runCatching { localLLMService.generate(conversation) }
-                    .getOrNull()
-                    ?.takeIf { it.isNotBlank() }
-                    ?: chatService.send(conversation)
-            } else {
-                chatService.send(conversation)
-            }
-        } else {
-            chatService.send(conversation)
-        }
+        if (!modelSettings.useLocalModel.value) return chatService.send(conversation)
+        val id = modelSettings.localModelId.value ?: return chatService.send(conversation)
+        val model = GGUFModelCatalog.byId(id) ?: return chatService.send(conversation)
+        if (!ensureLocalModel(model)) return chatService.send(conversation)
+        return runCatching { localLLMService.generate(conversation) }
+            .getOrNull()
+            ?.takeIf { it.isNotBlank() }
+            ?: chatService.send(conversation)
     }
 
     private suspend fun ensureLocalModel(model: LocalModel): Boolean {

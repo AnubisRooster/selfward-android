@@ -3,6 +3,8 @@ package com.theraipist.ui.chat
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.chat.ChatService
+import com.theraipist.core.voice.TtsRequest
+import com.theraipist.core.voice.TtsService
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
@@ -47,6 +49,11 @@ class ChatViewModelTest {
         }
     }
 
+    private class FakeTtsService : TtsService {
+        override suspend fun synthesize(request: TtsRequest): ByteArray = byteArrayOf()
+        override fun close() {}
+    }
+
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     @Before
@@ -68,7 +75,8 @@ class ChatViewModelTest {
             TherapyPromptBuilder,
             SafetyGuardrails,
             PersonaHolder(),
-            GraphHolder()
+            GraphHolder(),
+            FakeTtsService()
         )
         return vm to repo
     }

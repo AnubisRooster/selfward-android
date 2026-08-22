@@ -35,7 +35,8 @@ import com.theraipist.core.model.Role
 
 @Composable
 fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
-    val state by viewModel.uiState.collectAsState()
+        val state by viewModel.uiState.collectAsState()
+    val ttsEnabled by viewModel.ttsEnabled.collectAsState()
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -68,24 +69,27 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
             items(state.messages) { message -> MessageBubble(message) }
         }
 
-        Row(
-            Modifier.fillMaxWidth().padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = input,
-                onValueChange = { input = it },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Share what's on your mind…") }
-            )
-            Button(
-                onClick = {
-                    viewModel.send(input)
-                    input = ""
-                },
-                enabled = !state.isSending
-            ) { Text(if (state.isSending) "…" else "Send") }
-        }
+            Row(
+                Modifier.fillMaxWidth().padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it },
+                    modifier = Modifier.weight(1f),
+                    placeholder = { Text("Share what's on your mind…") }
+                )
+                Button(
+                    onClick = {
+                        viewModel.send(input)
+                        input = ""
+                    },
+                    enabled = !state.isSending
+                ) { Text(if (state.isSending) "…" else "Send") }
+                TextButton(onClick = { viewModel.setTtsEnabled(!ttsEnabled) }) {
+                    Text(if (ttsEnabled) "Read: On" else "Read: Off")
+                }
+            }
     }
 }
 

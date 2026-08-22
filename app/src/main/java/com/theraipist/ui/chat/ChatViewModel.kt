@@ -2,6 +2,7 @@ package com.theraipist.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.media.MediaPlayer
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.chat.ChatService
@@ -12,11 +13,16 @@ import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.safety.SafetyGuardrails
+import com.theraipist.core.voice.TtsRequest
+import com.theraipist.core.voice.TtsService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,12 +33,20 @@ class ChatViewModel @Inject constructor(
     private val promptBuilder: TherapyPromptBuilder,
     private val safety: SafetyGuardrails,
     private val personaHolder: PersonaHolder,
-    private val graphHolder: GraphHolder
+    private val graphHolder: GraphHolder,
+    private val ttsService: TtsService
 ) : ViewModel() {
 
     private var sessionId: String? = null
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState = _uiState.asStateFlow()
+
+    private val _ttsEnabled = MutableStateFlow(false)
+    val ttsEnabled = _ttsEnabled.asStateFlow()
+
+    fun setTtsEnabled(enabled: Boolean) {
+        _ttsEnabled.value = enabled
+    }
 
     fun send(text: String) {
         val trimmed = text.trim()
@@ -78,6 +92,35 @@ class ChatViewModel @Inject constructor(
                     graphNodes = graphHolder.nodes.value
                 )
             }
+            if (_ttsEnabled.value) {
+                speak(reply)
+            }
+        }
+    }
+
+    private fun speak(text: String) {
+        viewModelScope.launch {
+            runCatching {
+                val audio = ttsService.synthesize(TtsRequest(input = text))
+                playMp3(audio)
+            }
+        }
+    }
+
+    private suspend fun playMp3(bytes: ByteArray) = withContext(Dispatchers.IO) {
+        val file = File.createTempFile("theraipist_tts_", ".mp3")
+        try {
+            file.writeBytes(bytes)
+            val player = MediaPlayer()
+            player.setDataSource(file.absolutePath)
+            player.prepare()
+            player.start()
+            player.setOnCompletionListener {
+                it.release()
+                file.delete()
+            }
+        } catch (_: Exception) {
+            file.delete()
         }
     }
 

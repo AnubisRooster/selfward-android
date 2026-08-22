@@ -60,10 +60,14 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   crisis resources) added as a 5th nav tab.
 - **Phase 10/11 — Docs**: `PRIVACY.md`, `MEMORY.md` (architecture/status), and
   `store/listing.md` (Play store listing + data-safety summary).
-- **Phase 14 — Memory graph wiring** (in progress): `GraphHolder` (`@Singleton`)
-  accumulates `InsightExtractor` output; `ChatViewModel` adds insights after each
-  assistant reply and exposes `graphNodes`; `GraphScreen` shows live nodes via
-  `GraphViewModel`. Verified by `assistantReply_extractsInsightsIntoGraph`.
+- **Phase 14 — Memory graph wiring**: `GraphHolder` (`@Singleton`) accumulates
+  `InsightExtractor` output; `ChatViewModel` adds insights after each assistant reply
+  and exposes `graphNodes`; `GraphScreen` shows live nodes via `GraphViewModel`.
+  Verified by `assistantReply_extractsInsightsIntoGraph`.
+- **Phase 12 — Voice in chat (TTS)** (in progress): `ChatViewModel` gains `ttsEnabled`
+  toggle; when on, assistant replies are synthesized via `TtsService` and played with
+  `MediaPlayer` from a temp file. `ChatScreen` has a Read-aloud toggle. (STT input is a
+  follow-up requiring RECORD_AUDIO permission handling.)
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

@@ -30,14 +30,19 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
 - **Phase 3 — domain mechanics** (done): `TherapyModality` + `ModalityRouter`,
   `SseParser` (OpenAI-compatible streaming), `TherapyGraph` (in-memory knowledge
   graph) + `InsightExtractor`, and `SafetyGuardrails.reEntryCheck`.
-- **Phase 4 — on-device LLM + embeddings** (in progress): `LocalLLMService`
-  interface + `LlamaCppLocalService` (llama.cpp via `org.codeshipping:llama-kotlin-android`,
-  Kotlin 2.0.21), `GGUFModelCatalog` + `ModelSelector`, `EmbeddingProvider`
-  interface + `OnnxEmbeddingProvider` (ONNX Runtime Mobile), and `MemoryVectorStore`
-  (cosine retrieval). Kotlin bumped to 2.0.21 and Compose migrated to the official
+- **Phase 4 — on-device LLM + embeddings**: `LocalLLMService` interface +
+  `LlamaCppLocalService` (llama.cpp via `org.codeshipping:llama-kotlin-android`,
+  Kotlin 2.0.21), `GGUFModelCatalog` + `ModelSelector`, `EmbeddingProvider` interface
+  + `OnnxEmbeddingProvider` (ONNX Runtime Mobile), and `MemoryVectorStore` (cosine
+  retrieval). Kotlin bumped to 2.0.21 + Compose migrated to the official
   `org.jetbrains.kotlin.plugin.compose` plugin to consume the 2.0-compiled library.
   Pure logic verified with `GGUFModelCatalogTest`, `ModelSelectorTest`,
   `CosineSimilarityTest`, `MemoryVectorStoreTest`.
+- **Phase 5 — TTS/STT** (in progress): `TtsRequest` (engine-free JSON body, tested),
+  `TtsService`/`SttService` interfaces, `CloudTtsService` (OpenAI `/audio/speech`,
+  Ktor) + `CloudSttService` (Whisper `/audio/transcriptions`, multipart), and
+  on-device `AndroidTtsService` (`TextToSpeech`) / `AndroidSttService`
+  (`SpeechRecognizer`). Verified with `TtsRequestTest` + `VoiceCatalog`.
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

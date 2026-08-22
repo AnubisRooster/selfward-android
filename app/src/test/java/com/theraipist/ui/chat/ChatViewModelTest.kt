@@ -6,6 +6,7 @@ import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.voice.TtsRequest
+import com.theraipist.data.settings.SecureSettings
 import com.theraipist.core.voice.TtsService
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
@@ -65,10 +66,7 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
-    private class FakeSecureSettings : com.theraipist.data.settings.SecureSettings(
-        android.app.Application()
-    )
-
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     @Before
@@ -92,7 +90,7 @@ class ChatViewModelTest {
             PersonaHolder(),
             GraphHolder(),
             FakeTtsService(),
-            ModelSettings(FakeSecureSettings()),
+            ModelSettings(SecureSettings(android.app.Application())),
             FakeLocalLLMService()
         )
         return vm to repo

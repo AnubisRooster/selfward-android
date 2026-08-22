@@ -59,7 +59,8 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideSecureSettings(): SecureSettings = SecureSettings()
+    fun provideSecureSettings(@ApplicationContext context: Context): SecureSettings =
+        SecureSettings(context)
 
     @Provides
     fun provideModalityRouter(): ModalityRouter = ModalityRouter

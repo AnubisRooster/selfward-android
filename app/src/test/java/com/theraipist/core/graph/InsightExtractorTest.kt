@@ -24,6 +24,6 @@ class InsightExtractorTest {
 
     @Test
     fun ignoresUnmarkedText() {
-        assertEquals(emptyList(), InsightExtractor.extract("just a normal reply with no markers"))
+        assertTrue(InsightExtractor.extract("just a normal reply with no markers").isEmpty())
     }
 }

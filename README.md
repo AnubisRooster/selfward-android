@@ -52,10 +52,14 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   bottom nav (Chat/Persona/Graph), `ChatScreen`, `PersonaScreen`, `GraphScreen`
   (placeholder). `PersonaHolder` holds the active persona. Logic verified by
   `ChatViewModelTest`: send flow, blank-input guard, crisis resource banner. (62 tests green.)
-- **Phase 8 — Provider config + secure keys** (in progress): `SecureSettings`
+- **Phase 8 — Provider config + secure keys**: `SecureSettings`
   (`EncryptedSharedPreferences`, `@Singleton`), `SettingsViewModel` + `SettingsScreen`
-  (provider/API-key/model), and `ApiConfig` now derived from `SecureSettings` (per-provider
+  (provider/API-key/model), and `ApiConfig` derived from `SecureSettings` (per-provider
   base URL). `MainScreen` gains a Settings tab.
+- **Phase 9 — About screen**: `AboutScreen` (disclaimer + `TherapyConfig.RESOURCE_MESSAGE`
+  crisis resources) added as a 5th nav tab.
+- **Phase 10/11 — Docs**: `PRIVACY.md`, `MEMORY.md` (architecture/status), and
+  `store/listing.md` (Play store listing + data-safety summary).
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

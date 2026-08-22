@@ -19,7 +19,7 @@ class CloudChatService(
     private data class ReqMessage(val role: String, val content: String)
 
     @Serializable
-    private data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean = false)
+    internal data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean = false)
 
     @Serializable
     private data class RespMessage(val role: String, val content: String)

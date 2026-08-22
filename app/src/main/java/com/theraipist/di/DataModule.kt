@@ -8,7 +8,7 @@ import com.theraipist.core.voice.SttService
 import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.llm.LlamaCppLocalService
-import com.theraipist.data.local.repository.RoomSessionRepository
+import com.theraipist.data.repository.RoomSessionRepository
 import com.theraipist.data.voice.CloudSttService
 import com.theraipist.data.voice.CloudTtsService
 import dagger.Module

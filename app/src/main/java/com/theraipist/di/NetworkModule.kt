@@ -1,6 +1,7 @@
 package com.theraipist.di
 
 import com.theraipist.core.chat.ApiConfig
+import com.theraipist.core.chat.Provider
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,6 +20,7 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideApiConfig(): ApiConfig = ApiConfig(
+        provider = Provider.OPENAI,
         baseUrl = "https://api.openai.com/v1",
         apiKey = "",
         model = "gpt-4o-mini"

@@ -18,8 +18,8 @@ data class SessionSummary(
 )
 
 interface SessionRepository {
-    fun createSession(persona: Persona, title: String = "New Session"): Session
-    fun appendMessage(sessionId: String, message: Message)
-    fun getMessages(sessionId: String): List<Message>
-    fun listSessions(): List<SessionSummary>
+    suspend fun createSession(persona: Persona, title: String = "New Session"): Session
+    suspend fun appendMessage(sessionId: String, message: Message)
+    suspend fun getMessages(sessionId: String): List<Message>
+    suspend fun listSessions(): List<SessionSummary>
 }

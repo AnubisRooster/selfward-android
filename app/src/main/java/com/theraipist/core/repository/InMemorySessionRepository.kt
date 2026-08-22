@@ -8,8 +8,7 @@ class InMemorySessionRepository : SessionRepository {
     private val sessions = LinkedHashMap<String, Session>()
     private val messages = LinkedHashMap<String, MutableList<Message>>()
 
-    @Synchronized
-    override fun createSession(persona: Persona, title: String): Session {
+    override suspend fun createSession(persona: Persona, title: String): Session {
         val now = System.currentTimeMillis()
         val id = "sess_${now}_${sessions.size}"
         val session = Session(id, persona, title, now, now)
@@ -18,21 +17,18 @@ class InMemorySessionRepository : SessionRepository {
         return session
     }
 
-    @Synchronized
-    override fun appendMessage(sessionId: String, message: Message) {
+    override suspend fun appendMessage(sessionId: String, message: Message) {
         messages[sessionId]?.add(message)
         sessions[sessionId]?.let {
             sessions[sessionId] = it.copy(updatedAt = System.currentTimeMillis())
         }
     }
 
-    @Synchronized
-    override fun getMessages(sessionId: String): List<Message> {
+    override suspend fun getMessages(sessionId: String): List<Message> {
         return messages[sessionId]?.toList() ?: emptyList()
     }
 
-    @Synchronized
-    override fun listSessions(): List<SessionSummary> {
+    override suspend fun listSessions(): List<SessionSummary> {
         return sessions.values.map { SessionSummary(it.id, it.title, it.updatedAt) }
     }
 }

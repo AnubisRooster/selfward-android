@@ -2,6 +2,7 @@ package com.theraipist.core.chat
 
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Role
+import io.ktor.client.HttpClient
 import org.junit.Assert.*
 import org.junit.Test
 

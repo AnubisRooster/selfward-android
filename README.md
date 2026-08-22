@@ -64,10 +64,12 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   `InsightExtractor` output; `ChatViewModel` adds insights after each assistant reply
   and exposes `graphNodes`; `GraphScreen` shows live nodes via `GraphViewModel`.
   Verified by `assistantReply_extractsInsightsIntoGraph`.
-- **Phase 12 — Voice in chat (TTS)** (in progress): `ChatViewModel` gains `ttsEnabled`
-  toggle; when on, assistant replies are synthesized via `TtsService` and played with
-  `MediaPlayer` from a temp file. `ChatScreen` has a Read-aloud toggle. (STT input is a
-  follow-up requiring RECORD_AUDIO permission handling.)
+- **Phase 12 — Voice in chat (TTS)**: `ChatViewModel` gains `ttsEnabled` toggle; when
+  on, assistant replies are synthesized via `TtsService` and played with `MediaPlayer`
+  from a temp file. `ChatScreen` has a Read-aloud toggle. (STT input is a follow-up
+  requiring RECORD_AUDIO permission handling.)
+- **Phase 13 — Graph visualization**: `GraphHolder` now chains insights with edges;
+  `GraphScreen` renders nodes + edges on a Compose `Canvas` (circular layout).
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

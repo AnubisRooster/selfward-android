@@ -4,8 +4,13 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.dagger.hilt.android")
     id("androidx.room")
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.1"
     kotlin("plugin.serialization") version "2.0.21"
     kotlin("kapt")
+}
+
+ktlint {
+    ignoreFailures = true
 }
 
 android {
@@ -89,6 +94,7 @@ dependencies {
     implementation("com.google.dagger:hilt-android:2.51.1")
     kapt("com.google.dagger:hilt-compiler:2.51.1")
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    implementation("androidx.activity:activity-compose:1.9.2")
 
     // Room
     implementation("androidx.room:room-runtime:2.6.1")

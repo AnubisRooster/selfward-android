@@ -31,3 +31,9 @@ jobs:
         uses: gradle/gradle-build-action@v3
         with:
           arguments: assembleDebug lintDebug testDebugUnitTest
+
+      - name: ktlint (report only)
+        uses: gradle/gradle-build-action@v3
+        continue-on-error: true
+        with:
+          arguments: ktlintCheck

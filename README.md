@@ -64,6 +64,17 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   `InsightExtractor` output; `ChatViewModel` adds insights after each assistant reply
   and exposes `graphNodes`; `GraphScreen` shows live nodes via `GraphViewModel`.
   Verified by `assistantReply_extractsInsightsIntoGraph`.
+- **Phase 15 — CI hardening**: ktlint (`org.jlleitschuh.gradle.ktlint` 12.1.1) added
+  with `ignoreFailures = true`; CI runs `ktlintCheck` as a non-blocking (continue-on-error)
+  step. Will tighten to fail the build once style is cleaned up.
+- **Phase 3 — Voice input (STT)**: `AndroidSttService` now takes a `Context` and uses it;
+  `ChatScreen` has a "Speak" button that requests `RECORD_AUDIO` (activity-compose
+  `RequestPermission`) and fills the input with the transcript via `SpeechRecognizer`.
+- **Phase 4 — On-device model selection**: `SecureSettings` stores `useLocalModel`/
+  `localModelId` (lazy prefs); `ModelSettings` (`@Singleton`) exposes them as StateFlows;
+  `SettingsScreen` lists `GGUFModelCatalog.allModels` with a toggle + radio selection;
+  `ChatViewModel` routes to `LocalLLMService.generate(...)` when enabled (falls back to
+  cloud if the model isn't loaded).
 - **Phase 12 — Voice in chat (TTS)**: `ChatViewModel` gains `ttsEnabled` toggle; when
   on, assistant replies are synthesized via `TtsService` and played with `MediaPlayer`
   from a temp file. `ChatScreen` has a Read-aloud toggle. (STT input is a follow-up

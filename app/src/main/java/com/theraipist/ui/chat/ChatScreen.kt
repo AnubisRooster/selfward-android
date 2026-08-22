@@ -27,6 +27,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import com.theraipist.data.voice.AndroidSttService
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -39,6 +43,16 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+
+    val context = LocalContext.current
+    val stt = remember { AndroidSttService(context) }
+    var micGranted by remember { mutableStateOf(false) }
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        micGranted = granted
+        if (granted) stt.startListening(onFinal = { input = it })
+    }
 
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) {
@@ -86,6 +100,10 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
                     },
                     enabled = !state.isSending
                 ) { Text(if (state.isSending) "…" else "Send") }
+                TextButton(onClick = {
+                    if (micGranted) stt.startListening(onFinal = { input = it })
+                    else micLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                }) { Text("Speak") }
                 TextButton(onClick = { viewModel.setTtsEnabled(!ttsEnabled) }) {
                     Text(if (ttsEnabled) "Read: On" else "Read: Off")
                 }

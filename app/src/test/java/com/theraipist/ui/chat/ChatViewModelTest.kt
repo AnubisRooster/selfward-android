@@ -2,7 +2,9 @@ package com.theraipist.ui.chat
 
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
+import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
+import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
 import com.theraipist.core.model.Message
@@ -54,6 +56,19 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
+    private class FakeLocalLLMService : LocalLLMService {
+        override suspend fun isModelLoaded(): Boolean = false
+        override suspend fun load(model: com.theraipist.core.local.LocalModel, path: String) {}
+        override suspend fun generate(messages: List<com.theraipist.core.model.Message>): String = "local"
+        override fun stream(messages: List<com.theraipist.core.model.Message>) =
+            kotlinx.coroutines.flow.emptyFlow<String>()
+        override fun close() {}
+    }
+
+    private class FakeSecureSettings : com.theraipist.data.settings.SecureSettings(
+        android.app.Application()
+    )
+
     private val mainDispatcher = UnconfinedTestDispatcher()
 
     @Before
@@ -76,7 +91,9 @@ class ChatViewModelTest {
             SafetyGuardrails,
             PersonaHolder(),
             GraphHolder(),
-            FakeTtsService()
+            FakeTtsService(),
+            ModelSettings(FakeSecureSettings()),
+            FakeLocalLLMService()
         )
         return vm to repo
     }

@@ -1,19 +1,23 @@
 package com.theraipist.data.voice
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import java.util.Locale
+import javax.inject.Inject
 
 /**
  * On-device speech-to-text via Android `SpeechRecognizer`. Streams partial/final
- * results through a callback rather than a blocking `transcribe`, so it does not
- * implement the byte-oriented [com.theraipist.core.voice.SttService]. Wired into
- * the Phase 7 UI. Compile-verified by CI; requires a device at runtime.
+ * results through callbacks rather than the byte-oriented [SttService]. Wired into
+ * the Chat screen. Compile-verified by CI; requires a device at runtime and the
+ * RECORD_AUDIO permission.
  */
-class AndroidSttService {
+class AndroidSttService @Inject constructor(
+    private val context: Context
+) {
 
     private var recognizer: SpeechRecognizer? = null
 
@@ -22,7 +26,7 @@ class AndroidSttService {
         onFinal: (String) -> Unit = {},
         onError: (Int) -> Unit = {}
     ) {
-        val r = SpeechRecognizer.createSpeechRecognizer(null)
+        val r = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer = r
         r.setRecognitionListener(object : RecognitionListener {
             override fun onPartialResults(partialResults: Bundle?) {

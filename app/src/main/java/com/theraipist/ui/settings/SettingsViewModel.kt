@@ -1,6 +1,7 @@
 package com.theraipist.ui.settings
 
 import androidx.lifecycle.ViewModel
+import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.Provider
 import com.theraipist.data.settings.SecureSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,23 +11,28 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val secureSettings: SecureSettings
+    private val secureSettings: SecureSettings,
+    private val modelSettings: ModelSettings
 ) : ViewModel() {
 
-    private val _provider = MutableStateFlow(secureSettings.provider)
-    val provider = _provider.asStateFlow()
+    val provider = MutableStateFlow(secureSettings.provider)
+    val apiKey = MutableStateFlow(secureSettings.apiKey ?: "")
+    val model = MutableStateFlow(secureSettings.model)
 
-    private val _apiKey = MutableStateFlow(secureSettings.apiKey ?: "")
-    val apiKey = _apiKey.asStateFlow()
+    val useLocalModel = modelSettings.useLocalModel
+    val localModelId = modelSettings.localModelId
 
-    private val _model = MutableStateFlow(secureSettings.model)
-    val model = _model.asStateFlow()
+    init {
+        modelSettings.initFromSettings()
+    }
 
-    fun setProvider(provider: Provider) { _provider.value = provider }
-    fun setApiKey(apiKey: String) { _apiKey.value = apiKey }
-    fun setModel(model: String) { _model.value = model }
+    fun setProvider(provider: Provider) { this.provider.value = provider }
+    fun setApiKey(apiKey: String) { this.apiKey.value = apiKey }
+    fun setModel(model: String) { this.model.value = model }
+    fun setUseLocalModel(use: Boolean) = modelSettings.setUseLocalModel(use)
+    fun setLocalModelId(id: String) = modelSettings.setLocalModelId(id)
 
     fun save() {
-        secureSettings.save(_provider.value, _apiKey.value, _model.value)
+        secureSettings.save(provider.value, apiKey.value, model.value)
     }
 }

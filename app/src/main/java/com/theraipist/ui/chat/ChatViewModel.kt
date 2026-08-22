@@ -5,7 +5,11 @@ import androidx.lifecycle.viewModelScope
 import android.media.MediaPlayer
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
+import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
+import com.theraipist.core.local.GGUFModelCatalog
+import com.theraipist.core.local.LocalLLMService
+import com.theraipist.core.local.LocalModel
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
@@ -34,8 +38,12 @@ class ChatViewModel @Inject constructor(
     private val safety: SafetyGuardrails,
     private val personaHolder: PersonaHolder,
     private val graphHolder: GraphHolder,
-    private val ttsService: TtsService
+    private val ttsService: TtsService,
+    private val modelSettings: ModelSettings,
+    private val localLLMService: LocalLLMService
 ) : ViewModel() {
+
+    private val modelDir = "/sdcard/Android/data/com.theraipist.app/files/models"
 
     private var sessionId: String? = null
     private val _uiState = MutableStateFlow(ChatUiState())
@@ -75,7 +83,7 @@ class ChatViewModel @Inject constructor(
             _uiState.update { it.copy(messages = it.messages + userMessage, isSending = true) }
 
             val conversation = promptBuilder.buildConversation(persona, modality.name, history, trimmed)
-            val reply = chatService.send(conversation)
+            val reply = produceReply(conversation)
             val assistantMessage = Message(
                 id = "a-${System.nanoTime()}",
                 role = Role.ASSISTANT,
@@ -96,6 +104,31 @@ class ChatViewModel @Inject constructor(
                 speak(reply)
             }
         }
+    }
+
+    private suspend fun produceReply(conversation: List<Message>): String {
+        if (modelSettings.useLocalModel.value) {
+            val id = modelSettings.localModelId.value
+            val model = id?.let { GGUFModelCatalog.byId(it) }
+            if (model != null && ensureLocalModel(model)) {
+                runCatching { localLLMService.generate(conversation) }
+                    .getOrNull()
+                    ?.takeIf { it.isNotBlank() }
+                    ?: chatService.send(conversation)
+            } else {
+                chatService.send(conversation)
+            }
+        } else {
+            chatService.send(conversation)
+        }
+    }
+
+    private suspend fun ensureLocalModel(model: LocalModel): Boolean {
+        if (localLLMService.isModelLoaded()) return true
+        return runCatching {
+            localLLMService.load(model, "$modelDir/${model.fileName}")
+            localLLMService.isModelLoaded()
+        }.getOrDefault(false)
     }
 
     private fun speak(text: String) {

@@ -12,17 +12,23 @@ import javax.inject.Singleton
 class SecureSettings @Inject constructor(
     @ApplicationContext context: Context
 ) {
-    private val masterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
+    private val appContext = context
 
-    private val prefs = EncryptedSharedPreferences.create(
-        context,
-        "theraipist_secure",
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-    )
+    private val masterKey by lazy {
+        MasterKey.Builder(appContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+    }
+
+    private val prefs by lazy {
+        EncryptedSharedPreferences.create(
+            appContext,
+            "theraipist_secure",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     val provider: Provider
         get() = Provider.valueOf(prefs.getString(KEY_PROVIDER, "OPENAI") ?: "OPENAI")
@@ -32,6 +38,14 @@ class SecureSettings @Inject constructor(
 
     val model: String
         get() = prefs.getString(KEY_MODEL, "gpt-4o-mini") ?: "gpt-4o-mini"
+
+    var useLocalModel: Boolean
+        get() = prefs.getBoolean(KEY_USE_LOCAL, false)
+        set(value) = prefs.edit().putBoolean(KEY_USE_LOCAL, value).apply()
+
+    var localModelId: String?
+        get() = prefs.getString(KEY_LOCAL_MODEL, null)
+        set(value) = prefs.edit().putString(KEY_LOCAL_MODEL, value).apply()
 
     fun save(provider: Provider, apiKey: String, model: String) {
         prefs.edit()
@@ -45,5 +59,7 @@ class SecureSettings @Inject constructor(
         private const val KEY_API_KEY = "api_key"
         private const val KEY_PROVIDER = "provider"
         private const val KEY_MODEL = "model"
+        private const val KEY_USE_LOCAL = "use_local_model"
+        private const val KEY_LOCAL_MODEL = "local_model_id"
     }
 }

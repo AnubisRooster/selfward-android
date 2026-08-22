@@ -44,10 +44,14 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   (Whisper `/audio/transcriptions`, multipart), and on-device `AndroidTtsService`
   (`TextToSpeech`) / `AndroidSttService` (`SpeechRecognizer`). Verified with
   `TtsRequestTest`.
-- **Phase 6 — Hilt DI** (in progress): `NetworkModule` (HttpClient + ApiConfig) and
-  `DataModule` (TherAIpistDatabase, RoomSessionRepository, LlamaCppLocalService,
-  CloudTtsService, CloudSttService) installed in `SingletonComponent`. Validated by
-  Hilt's kapt step during `assembleDebug`.
+- **Phase 6 — Hilt DI**: `NetworkModule` (`HttpClient`, `ApiConfig`) + `DataModule`
+  (database, `RoomSessionRepository`, `LlamaCppLocalService`, `CloudTtsService`,
+  `CloudSttService`, `ChatService`, core `object` providers) in `SingletonComponent`.
+  Validated by Hilt's kapt step in `assembleDebug`.
+- **Phase 7 — UI** (in progress): `ChatViewModel` + `PersonaViewModel` (Hilt), `MainScreen`
+  NavHost w/ bottom nav (Chat/Persona/Graph), `ChatScreen`, `PersonaScreen`,
+  `GraphScreen` (placeholder). `PersonaHolder` holds the active persona. Logic verified
+  by `ChatViewModelTest` (Turbine): send flow, blank-input guard, crisis resource banner.
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

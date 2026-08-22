@@ -2,7 +2,13 @@ package com.theraipist.di
 
 import android.content.Context
 import androidx.room.Room
+import com.theraipist.core.chat.ApiConfig
+import com.theraipist.core.chat.ChatService
+import com.theraipist.core.chat.CloudChatService
 import com.theraipist.core.local.LocalLLMService
+import com.theraipist.core.modality.ModalityRouter
+import com.theraipist.core.prompt.TherapyPromptBuilder
+import com.theraipist.core.safety.SafetyGuardrails
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.voice.SttService
 import com.theraipist.core.voice.TtsService
@@ -49,4 +55,18 @@ object DataModule {
     @Singleton
     fun provideSttService(client: HttpClient, apiConfig: ApiConfig): SttService =
         CloudSttService(client, apiConfig)
+
+    @Provides
+    fun provideModalityRouter(): ModalityRouter = ModalityRouter
+
+    @Provides
+    fun provideTherapyPromptBuilder(): TherapyPromptBuilder = TherapyPromptBuilder
+
+    @Provides
+    fun provideSafetyGuardrails(): SafetyGuardrails = SafetyGuardrails
+
+    @Provides
+    @Singleton
+    fun provideChatService(client: HttpClient, apiConfig: ApiConfig): ChatService =
+        CloudChatService(client, apiConfig)
 }

@@ -5,8 +5,6 @@ import com.theraipist.core.local.LocalModel
 import com.theraipist.core.model.Message
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import org.codeshipping.llamakotlin.LlamaConfig
 import org.codeshipping.llamakotlin.LlamaModel
 
@@ -56,10 +54,34 @@ class LlamaCppLocalService : LocalLLMService {
         model ?: throw IllegalStateException("Local model is not loaded")
 
     private fun messagesToJson(messages: List<Message>): String {
-        val list = messages.map { ChatMsg(it.role.name.lowercase(), it.content) }
-        return Json.encodeToString(list)
+        val sb = StringBuilder()
+        sb.append("[")
+        messages.forEachIndexed { i, m ->
+            if (i > 0) sb.append(",")
+            sb.append("{\"role\":")
+                .append(escapeJson(m.role.name.lowercase()))
+                .append(",\"content\":")
+                .append(escapeJson(m.content))
+                .append("}")
+        }
+        sb.append("]")
+        return sb.toString()
     }
 
-    @Serializable
-    private data class ChatMsg(val role: String, val content: String)
+    private fun escapeJson(s: String): String {
+        val out = StringBuilder()
+        out.append("\"")
+        for (c in s) {
+            when (c) {
+                '"' -> out.append("\\\"")
+                '\\' -> out.append("\\\\")
+                '\n' -> out.append("\\n")
+                '\r' -> out.append("\\r")
+                '\t' -> out.append("\\t")
+                else -> out.append(c)
+            }
+        }
+        out.append("\"")
+        return out.toString()
+    }
 }

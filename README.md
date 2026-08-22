@@ -38,8 +38,13 @@ with JVM unit tests under `app/src/test/java/com/theraipist/core/`:
   `/chat/completions`, bearer auth, JSON; SSE streaming deferred to Phase 3).
 - `repository` — `SessionRepository` interface + `InMemorySessionRepository`.
 
-Tests: `SafetyGuardrailsTest`, `TherapyPromptBuilderTest`, `CloudChatServiceTest`
-(Ktor `MockEngine`), `InMemorySessionRepositoryTest`.
+Tests: `SafetyGuardrailsTest`, `TherapyPromptBuilderTest`, `ChatProtocolTest`,
+`InMemorySessionRepositoryTest` — **all green in CI** (`testDebugUnitTest`).
+
+> Note: `CloudChatService` keeps request-building and response-parsing in the
+> engine-free `ChatProtocol` object so they can be unit-tested without a Ktor
+> engine (the `MockEngine` `NoClassDefFoundError` made engine-based tests
+> flaky under the unit-test classpath).
 
 ## Build
 

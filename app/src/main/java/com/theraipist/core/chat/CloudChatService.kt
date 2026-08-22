@@ -16,19 +16,19 @@ class CloudChatService(
 ) : ChatService {
 
     @Serializable
-    private data class ReqMessage(val role: String, val content: String)
+    internal data class ReqMessage(val role: String, val content: String)
 
     @Serializable
     internal data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean = false)
 
     @Serializable
-    private data class RespMessage(val role: String, val content: String)
+    internal data class RespMessage(val role: String, val content: String)
 
     @Serializable
-    private data class Choice(val message: RespMessage, val index: Int = 0, val finish_reason: String? = null)
+    internal data class Choice(val message: RespMessage, val index: Int = 0, val finish_reason: String? = null)
 
     @Serializable
-    private data class ChatResponse(val id: String? = null, val choices: List<Choice> = emptyList())
+    internal data class ChatResponse(val id: String? = null, val choices: List<Choice> = emptyList())
 
     /** Build the OpenAI-compatible request body from domain messages. Visible for tests. */
     internal fun buildRequest(messages: List<Message>, model: String = config.model): ChatRequest =

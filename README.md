@@ -38,11 +38,16 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   `org.jetbrains.kotlin.plugin.compose` plugin to consume the 2.0-compiled library.
   Pure logic verified with `GGUFModelCatalogTest`, `ModelSelectorTest`,
   `CosineSimilarityTest`, `MemoryVectorStoreTest`.
-- **Phase 5 — TTS/STT** (in progress): `TtsRequest` (engine-free JSON body, tested),
-  `TtsService`/`SttService` interfaces, `CloudTtsService` (OpenAI `/audio/speech`,
-  Ktor) + `CloudSttService` (Whisper `/audio/transcriptions`, multipart), and
-  on-device `AndroidTtsService` (`TextToSpeech`) / `AndroidSttService`
-  (`SpeechRecognizer`). Verified with `TtsRequestTest` + `VoiceCatalog`.
+- **Phase 5 — TTS/STT**: `TtsRequest` (engine-free JSON body, tested with
+  `encodeDefaults` + `response_format` wire key), `TtsService`/`SttService`
+  interfaces, `CloudTtsService` (OpenAI `/audio/speech`, Ktor) + `CloudSttService`
+  (Whisper `/audio/transcriptions`, multipart), and on-device `AndroidTtsService`
+  (`TextToSpeech`) / `AndroidSttService` (`SpeechRecognizer`). Verified with
+  `TtsRequestTest`.
+- **Phase 6 — Hilt DI** (in progress): `NetworkModule` (HttpClient + ApiConfig) and
+  `DataModule` (TherAIpistDatabase, RoomSessionRepository, LlamaCppLocalService,
+  CloudTtsService, CloudSttService) installed in `SingletonComponent`. Validated by
+  Hilt's kapt step during `assembleDebug`.
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

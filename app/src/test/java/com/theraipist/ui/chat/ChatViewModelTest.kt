@@ -1,6 +1,5 @@
 package com.theraipist.ui.chat
 
-import app.cash.turbine.test
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.model.Message
@@ -11,11 +10,16 @@ import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.repository.SessionSummary
 import com.theraipist.core.safety.SafetyGuardrails
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,6 +46,18 @@ class ChatViewModelTest {
         }
     }
 
+    private val mainDispatcher = UnconfinedTestDispatcher()
+
+    @Before
+    fun setup() {
+        Dispatchers.setMain(mainDispatcher)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
+
     private fun buildVm(): Pair<ChatViewModel, FakeSessionRepository> {
         val repo = FakeSessionRepository()
         val vm = ChatViewModel(
@@ -56,37 +72,30 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun send_appendsUserThenAssistant() = runTest(UnconfinedTestDispatcher()) {
+    fun send_appendsUserThenAssistant() = runTest {
         val (vm, repo) = buildVm()
-        vm.uiState.test {
-            expectMostRecentItem() // initial empty state
-            vm.send("I had a dream about flying")
-            val final = awaitItem()
-            assertTrue(final.messages.any { it.role == Role.USER && it.content == "I had a dream about flying" })
-            assertTrue(final.messages.any { it.role == Role.ASSISTANT })
-            assertEquals(false, final.isSending)
-            assertTrue(repo.stored.any { it.role == Role.USER })
-        }
+        vm.send("I had a dream about flying")
+        val state = vm.uiState.value
+        assertTrue(state.messages.any { it.role == Role.USER && it.content == "I had a dream about flying" })
+        assertTrue(state.messages.any { it.role == Role.ASSISTANT })
+        assertEquals(false, state.isSending)
+        assertTrue(repo.stored.any { it.role == Role.USER })
     }
 
     @Test
-    fun blankInput_isIgnored() = runTest(UnconfinedTestDispatcher()) {
+    fun blankInput_isIgnored() = runTest {
         val (vm, repo) = buildVm()
-        vm.uiState.test {
-            vm.send("   ")
-            expectMostRecentItem()
-            assertTrue(repo.stored.isEmpty())
-        }
+        vm.send("   ")
+        assertTrue(repo.stored.isEmpty())
+        assertTrue(vm.uiState.value.messages.isEmpty())
     }
 
     @Test
-    fun crisisInput_setsResourceMessage() = runTest(UnconfinedTestDispatcher()) {
+    fun crisisInput_setsResourceMessage() = runTest {
         val (vm, _) = buildVm()
-        vm.uiState.test {
-            vm.send("I want to kill myself")
-            val final = awaitItem()
-            assertTrue(final.crisisLevel != null)
-            assertTrue(!final.resourceMessage.isNullOrBlank())
-        }
+        vm.send("I want to kill myself")
+        val state = vm.uiState.value
+        assertTrue(state.crisisLevel != null)
+        assertTrue(!state.resourceMessage.isNullOrBlank())
     }
 }

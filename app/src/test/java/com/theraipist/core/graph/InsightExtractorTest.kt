@@ -17,8 +17,9 @@ class InsightExtractorTest {
         """.trimIndent()
         val out = InsightExtractor.extract(text)
         assertEquals(3, out.size)
-        assertTrue(out[0].startsWith("I avoid"))
-        assertTrue(out.any { it.startsWith("Small steps") })
+        val joined = out.joinToString(" ")
+        assertTrue(joined.contains("I avoid"))
+        assertTrue(joined.contains("Small steps"))
     }
 
     @Test

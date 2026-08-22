@@ -5,9 +5,9 @@ import com.theraipist.core.model.Persona
 import com.theraipist.core.repository.Session
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.repository.SessionSummary
-import com.theraipist.data.local.Mappers.toDomain
-import com.theraipist.data.local.Mappers.toEntity
-import com.theraipist.data.local.Mappers.toSessionEntity
+import com.theraipist.data.local.toDomain
+import com.theraipist.data.local.toEntity
+import com.theraipist.data.local.toSessionEntity
 import com.theraipist.data.local.TherAIpistDatabase
 import java.util.UUID
 

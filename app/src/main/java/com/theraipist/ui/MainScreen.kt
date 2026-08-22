@@ -18,8 +18,9 @@ import androidx.navigation.compose.rememberNavController
 import com.theraipist.ui.chat.ChatScreen
 import com.theraipist.ui.graph.GraphScreen
 import com.theraipist.ui.persona.PersonaScreen
+import com.theraipist.ui.settings.SettingsScreen
 
-private val ROUTES = listOf("chat", "persona", "graph")
+private val ROUTES = listOf("chat", "persona", "graph", "settings")
 
 @Composable
 fun MainScreen() {
@@ -57,6 +58,7 @@ fun MainScreen() {
             composable("chat") { ChatScreen() }
             composable("persona") { PersonaScreen() }
             composable("graph") { GraphScreen() }
+            composable("settings") { SettingsScreen() }
         }
     }
 }

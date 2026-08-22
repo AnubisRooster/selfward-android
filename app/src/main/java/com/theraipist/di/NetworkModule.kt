@@ -2,6 +2,7 @@ package com.theraipist.di
 
 import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.chat.Provider
+import com.theraipist.data.settings.SecureSettings
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,10 +20,17 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideApiConfig(): ApiConfig = ApiConfig(
-        provider = Provider.OPENAI,
-        baseUrl = "https://api.openai.com/v1",
-        apiKey = "",
-        model = "gpt-4o-mini"
-    )
+    fun provideApiConfig(settings: SecureSettings): ApiConfig {
+        val baseUrl = when (settings.provider) {
+            Provider.OPENAI -> "https://api.openai.com/v1"
+            Provider.OPENROUTER -> "https://openrouter.ai/api/v1"
+            Provider.ANTHROPIC -> "https://api.anthropic.com/v1"
+        }
+        return ApiConfig(
+            provider = settings.provider,
+            baseUrl = baseUrl,
+            apiKey = settings.apiKey ?: "",
+            model = settings.model
+        )
+    }
 }

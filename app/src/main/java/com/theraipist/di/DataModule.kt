@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.chat.CloudChatService
+import com.theraipist.core.chat.Provider
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
@@ -15,6 +16,7 @@ import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.llm.LlamaCppLocalService
 import com.theraipist.data.repository.RoomSessionRepository
+import com.theraipist.data.settings.SecureSettings
 import com.theraipist.data.voice.CloudSttService
 import com.theraipist.data.voice.CloudTtsService
 import dagger.Module
@@ -54,6 +56,10 @@ object DataModule {
     @Singleton
     fun provideSttService(client: HttpClient, apiConfig: ApiConfig): SttService =
         CloudSttService(client, apiConfig)
+
+    @Provides
+    @Singleton
+    fun provideSecureSettings(): SecureSettings = SecureSettings()
 
     @Provides
     fun provideModalityRouter(): ModalityRouter = ModalityRouter

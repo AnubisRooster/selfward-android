@@ -48,10 +48,14 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   (database, `RoomSessionRepository`, `LlamaCppLocalService`, `CloudTtsService`,
   `CloudSttService`, `ChatService`, core `object` providers) in `SingletonComponent`.
   Validated by Hilt's kapt step in `assembleDebug`.
-- **Phase 7 — UI** (in progress): `ChatViewModel` + `PersonaViewModel` (Hilt), `MainScreen`
-  NavHost w/ bottom nav (Chat/Persona/Graph), `ChatScreen`, `PersonaScreen`,
-  `GraphScreen` (placeholder). `PersonaHolder` holds the active persona. Logic verified
-  by `ChatViewModelTest` (Turbine): send flow, blank-input guard, crisis resource banner.
+- **Phase 7 — UI**: `ChatViewModel` + `PersonaViewModel` (Hilt), `MainScreen` NavHost w/
+  bottom nav (Chat/Persona/Graph), `ChatScreen`, `PersonaScreen`, `GraphScreen`
+  (placeholder). `PersonaHolder` holds the active persona. Logic verified by
+  `ChatViewModelTest`: send flow, blank-input guard, crisis resource banner. (62 tests green.)
+- **Phase 8 — Provider config + secure keys** (in progress): `SecureSettings`
+  (`EncryptedSharedPreferences`, `@Singleton`), `SettingsViewModel` + `SettingsScreen`
+  (provider/API-key/model), and `ApiConfig` now derived from `SecureSettings` (per-provider
+  base URL). `MainScreen` gains a Settings tab.
 
 ### Phase 1 — domain core + cloud chat, TDD (done)
 

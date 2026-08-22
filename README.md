@@ -25,6 +25,22 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
 - Phases 1–3 (data layer, domain services, on-device LLM, TTS/STT, full Compose
   UI, Play Store listing) are planned. See the iOS repo for the target feature set.
 
+### Phase 1 (in progress) — domain core + cloud chat, TDD
+
+Pure-Kotlin, platform-independent core under `app/src/main/java/com/theraipist/core/`,
+with JVM unit tests under `app/src/test/java/com/theraipist/core/`:
+
+- `model` — `Message`, `Role`, `Persona`.
+- `safety/SafetyGuardrails` — crisis + boundary detection over `TherapyConfig`.
+- `prompt/TherapyPromptBuilder` — persona-aware system prompts, modality
+  instructions, and conversation assembly.
+- `chat` — `ChatService` interface + `CloudChatService` (Ktor OpenAI-compatible
+  `/chat/completions`, bearer auth, JSON; SSE streaming deferred to Phase 3).
+- `repository` — `SessionRepository` interface + `InMemorySessionRepository`.
+
+Tests: `SafetyGuardrailsTest`, `TherapyPromptBuilderTest`, `CloudChatServiceTest`
+(Ktor `MockEngine`), `InMemorySessionRepositoryTest`.
+
 ## Build
 
 Requires Android SDK (API 34) and JDK 17.

@@ -15,5 +15,5 @@ data class TtsRequest(
     val responseFormat: String = "mp3",
     val speed: Float = 1.0f
 ) {
-    fun toRequestBody(): String = Json.encodeToString(this)
+    fun toRequestBody(): String = Json.encodeToString(TtsRequest.serializer(), this)
 }

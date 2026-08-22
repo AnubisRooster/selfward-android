@@ -4,10 +4,10 @@ import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
 import io.ktor.client.HttpClient
+import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 
@@ -26,7 +26,7 @@ class CloudTtsService(
             bearerAuth(apiConfig.apiKey)
             contentType(ContentType.Application.Json)
             setBody(request.toRequestBody())
-        }.bodyAsBytes()
+        }.body<ByteArray>()
     }
 
     override fun close() {

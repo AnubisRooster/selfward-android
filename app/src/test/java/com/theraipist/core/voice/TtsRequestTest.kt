@@ -26,7 +26,7 @@ class TtsRequestTest {
     @Test
     fun roundTripsViaJson() {
         val req = TtsRequest(input = "x", voice = "onyx", speed = 1.2f)
-        val decoded = Json.decodeFromString<TtsRequest>(req.toRequestBody())
+        val decoded = Json.decodeFromString(TtsRequest.serializer(), req.toRequestBody())
         assertEquals(req, decoded)
     }
 

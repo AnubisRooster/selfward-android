@@ -4,9 +4,8 @@ import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.voice.SttService
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.forms.MultipartFormDataContent
 import io.ktor.client.request.forms.formData
-import io.ktor.client.request.post
+import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
@@ -22,22 +21,20 @@ class CloudSttService(
 
     override suspend fun transcribe(audio: ByteArray): String {
         val url = "${apiConfig.baseUrl.trimEnd('/')}/audio/transcriptions"
-        val response = client.post(url) {
-            bearerAuth(apiConfig.apiKey)
-            setBody(
-                MultipartFormDataContent(
-                    formData {
-                        append("model", "whisper-1")
-                        append(
-                            "file",
-                            audio,
-                            Headers.build {
-                                append(HttpHeaders.ContentDisposition, "filename=\"audio.webm\"")
-                            }
-                        )
+        val response = client.submitFormWithBinaryData(
+            url = url,
+            formData = formData {
+                append("model", "whisper-1")
+                append(
+                    "file",
+                    audio,
+                    Headers.build {
+                        append(HttpHeaders.ContentDisposition, "filename=\"audio.webm\"")
                     }
                 )
-            )
+            }
+        ) {
+            bearerAuth(apiConfig.apiKey)
         }
         return response.bodyAsText()
     }

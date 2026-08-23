@@ -34,6 +34,7 @@ import com.theraipist.data.voice.AndroidSttService
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.mikepenz.markdown.m3.Markdown
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Role
 
@@ -152,7 +153,11 @@ private fun MessageBubble(message: Message) {
                 message.modality?.let {
                     Text(it, style = MaterialTheme.typography.labelSmall)
                 }
-                Text(message.content, style = MaterialTheme.typography.bodyLarge)
+                if (isUser) {
+                    Text(message.content, style = MaterialTheme.typography.bodyLarge)
+                } else {
+                    Markdown(content = message.content)
+                }
             }
         }
     }

@@ -118,7 +118,9 @@ dependencies {
     // Secure storage (replaces iOS Keychain)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    // Markdown rendering — added in Phase 7 (UI) with verified coordinates.
+    // Markdown rendering for assistant replies (Compose-native, Material3-themed)
+    implementation("com.mikepenz:multiplatform-markdown-renderer:0.26.0")
+    implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.26.0")
 
     // Coroutines + serialization
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

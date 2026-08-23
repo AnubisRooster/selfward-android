@@ -8,5 +8,6 @@ enum class TherapyModality {
     DREAM,
     GROUNDING,
     IDENTITY,
+    PURPOSE,
     AUDIO
 }

@@ -214,5 +214,6 @@ private fun modalityLabel(modality: TherapyModality): String = when (modality) {
     TherapyModality.DREAM -> "Dream"
     TherapyModality.GROUNDING -> "Grounding"
     TherapyModality.IDENTITY -> "Identity"
+    TherapyModality.PURPOSE -> "Purpose"
     TherapyModality.AUDIO -> "Audio"
 }

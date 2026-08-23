@@ -8,9 +8,10 @@ A private, modality-aware AI therapy companion for reflection and growth.
 
 ## Long description
 therAIpist is a private AI companion for self-reflection, drawing on Jungian,
-DBT, Gestalt, existential, and humanistic framings. It helps you explore your
-inner life through eight conversation modes — talk, journaling, dreamwork,
-active imagination, role-play, grounding, identity exploration, and audio.
+Adlerian, DBT, Gestalt, existential, and humanistic framings. It helps you
+explore your inner life through nine conversation modes — talk, journaling,
+dreamwork, active imagination, role-play, grounding, identity, purpose, and
+audio.
 
 Features:
 - Multiple therapy modalities that adapt to what you share.
@@ -33,7 +34,7 @@ contact local emergency services or a crisis hotline.
 Health & Fitness (Medical subcategory may require sensitive-content declaration).
 
 ## Tags / keywords
-ai therapy, jungian, dbt, gestalt, journaling, dreamwork, mental health, self
+ai therapy, jungian, adlerian, dbt, gestalt, journaling, dreamwork, mental health, self
 reflection, mindfulness, private, on-device, offline, chatbot
 
 ## Content rating

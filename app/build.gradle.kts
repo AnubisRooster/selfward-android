@@ -27,10 +27,33 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    // Release signing reads from env vars so no secret ever needs to live in this file
+    // or in git. Locally: export the four vars below before running bundleRelease. In
+    // CI: set them as repo secrets (RELEASE_KEYSTORE_BASE64 decoded to a file first).
+    // Falls back to debug signing when they're unset, so a contributor without the
+    // release keystore can still build `release` locally.
+    val releaseKeystorePath = System.getenv("RELEASE_KEYSTORE_PATH")
+    val hasReleaseSigning = !releaseKeystorePath.isNullOrBlank()
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseKeystorePath!!)
+                storePassword = System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 

@@ -37,3 +37,67 @@ jobs:
         continue-on-error: true
         with:
           arguments: ktlintCheck
+
+  check-release-secrets:
+    # The `secrets` context can't be referenced directly in a job-level `if:`
+    # (GitHub Actions restriction), so this gatekeeper job checks presence in
+    # a step and exposes it as an output the `release` job's `if:` can read.
+    runs-on: ubuntu-latest
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+            echo "has-secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    # Inert until the four RELEASE_* secrets exist (see build.gradle.kts's
+    # signingConfigs.release for the local equivalent via env vars, and
+    # store/listing.md's setup notes for how to generate the keystore and
+    # add these as repo secrets). Skips entirely otherwise, so this job
+    # never fails CI on a fork or before signing is set up.
+    needs: [ build, check-release-secrets ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-release-secrets.outputs.has-secrets == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Decode release keystore
+        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.jks
+
+      - name: Build signed AAB
+        env:
+          RELEASE_KEYSTORE_PATH: ${{ github.workspace }}/release.jks
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f release.jks
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab
+          path: app/build/outputs/bundle/release/*.aab

@@ -1,8 +1,8 @@
 package com.theraipist.data.voice
 
-import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
+import com.theraipist.data.settings.SecureSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
@@ -17,10 +17,11 @@ import io.ktor.http.contentType
  */
 class CloudTtsService(
     private val client: HttpClient,
-    private val apiConfig: ApiConfig
+    private val secureSettings: SecureSettings
 ) : TtsService {
 
     override suspend fun synthesize(request: TtsRequest): ByteArray {
+        val apiConfig = secureSettings.apiConfig()
         val url = "${apiConfig.baseUrl.trimEnd('/')}/audio/speech"
         return client.post(url) {
             bearerAuth(apiConfig.apiKey)

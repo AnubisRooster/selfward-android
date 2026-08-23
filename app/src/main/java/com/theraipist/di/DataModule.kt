@@ -2,10 +2,8 @@ package com.theraipist.di
 
 import android.content.Context
 import androidx.room.Room
-import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.chat.CloudChatService
-import com.theraipist.core.chat.Provider
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
@@ -35,7 +33,6 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): TherAIpistDatabase =
         Room.databaseBuilder(context, TherAIpistDatabase::class.java, "theraipist.db")
-            .fallbackToDestructiveMigration()
             .build()
 
     @Provides
@@ -49,13 +46,13 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideTtsService(client: HttpClient, apiConfig: ApiConfig): TtsService =
-        CloudTtsService(client, apiConfig)
+    fun provideTtsService(client: HttpClient, secureSettings: SecureSettings): TtsService =
+        CloudTtsService(client, secureSettings)
 
     @Provides
     @Singleton
-    fun provideSttService(client: HttpClient, apiConfig: ApiConfig): SttService =
-        CloudSttService(client, apiConfig)
+    fun provideSttService(client: HttpClient, secureSettings: SecureSettings): SttService =
+        CloudSttService(client, secureSettings)
 
     @Provides
     @Singleton
@@ -73,6 +70,6 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideChatService(client: HttpClient, apiConfig: ApiConfig): ChatService =
-        CloudChatService(client, apiConfig)
+    fun provideChatService(client: HttpClient, secureSettings: SecureSettings): ChatService =
+        CloudChatService(client, secureSettings)
 }

@@ -13,7 +13,7 @@ object InsightExtractor {
         return text.lines().map { it.trim() }.mapNotNull { line ->
             val marker = MARKERS.firstOrNull { line.startsWith(it, ignoreCase = true) }
                 ?: return@mapNotNull null
-            val content = line.removePrefix(marker).trim().removePrefix(":").trim()
+            val content = line.substring(marker.length).trim().removePrefix(":").trim()
             content.takeIf { it.isNotEmpty() }
         }
     }

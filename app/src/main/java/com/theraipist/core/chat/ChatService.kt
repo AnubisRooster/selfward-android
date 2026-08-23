@@ -6,4 +6,7 @@ interface ChatService {
     suspend fun send(messages: List<Message>): String
 }
 
-class ChatServiceException(message: String) : Exception(message)
+open class ChatServiceException(message: String) : Exception(message)
+
+class MissingApiKeyException :
+    ChatServiceException("No API key is set for this provider yet — add one in Settings.")

@@ -87,6 +87,11 @@ class ChatViewModelTest {
             throw RuntimeException("network unreachable")
     }
 
+    private class MissingKeyChatService : ChatService {
+        override suspend fun send(messages: List<Message>): String =
+            throw com.theraipist.core.chat.MissingApiKeyException()
+    }
+
     private class FakeTtsService : TtsService {
         override suspend fun synthesize(request: TtsRequest): ByteArray = byteArrayOf()
         override fun close() {}
@@ -214,6 +219,16 @@ class ChatViewModelTest {
         vm.send("hello")
         val state = vm.uiState.value
         assertEquals(false, state.isSending)
+        assertTrue(!state.errorMessage.isNullOrBlank())
+        assertFalse(state.needsApiKey)
+    }
+
+    @Test
+    fun send_flagsNeedsApiKeyOnMissingApiKeyFailure() = runTest {
+        val (vm, _) = buildVm(MissingKeyChatService())
+        vm.send("hello")
+        val state = vm.uiState.value
+        assertTrue(state.needsApiKey)
         assertTrue(!state.errorMessage.isNullOrBlank())
     }
 

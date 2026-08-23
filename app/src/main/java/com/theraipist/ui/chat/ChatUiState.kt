@@ -11,5 +11,6 @@ data class ChatUiState(
     val resourceMessage: String? = null,
     val graphNodes: List<GraphNode> = emptyList(),
     val errorMessage: String? = null,
+    val needsApiKey: Boolean = false,
     val reEntryMessage: String? = null
 )

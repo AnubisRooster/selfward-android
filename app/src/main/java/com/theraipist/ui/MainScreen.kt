@@ -58,7 +58,17 @@ fun MainScreen() {
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
             composable("chat") {
-                ChatScreen(onOpenSessions = { navController.navigate("sessions") })
+                ChatScreen(
+                    onOpenSessions = { navController.navigate("sessions") },
+                    onOpenSettings = {
+                        selected = "settings"
+                        navController.navigate("settings") {
+                            popUpTo(navController.graph.startDestinationId) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable("persona") { PersonaScreen() }
             composable("graph") { GraphScreen() }

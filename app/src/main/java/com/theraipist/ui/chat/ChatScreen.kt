@@ -39,7 +39,11 @@ import com.theraipist.core.model.Message
 import com.theraipist.core.model.Role
 
 @Composable
-fun ChatScreen(viewModel: ChatViewModel = hiltViewModel(), onOpenSessions: () -> Unit = {}) {
+fun ChatScreen(
+    viewModel: ChatViewModel = hiltViewModel(),
+    onOpenSessions: () -> Unit = {},
+    onOpenSettings: () -> Unit = {}
+) {
         val state by viewModel.uiState.collectAsState()
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
     var input by remember { mutableStateOf("") }
@@ -86,7 +90,15 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel(), onOpenSessions: () ->
             ) {
                 Column(Modifier.padding(12.dp)) {
                     Text(message, style = MaterialTheme.typography.bodyMedium)
-                    TextButton(onClick = { viewModel.clearError() }) { Text("Dismiss") }
+                    Row {
+                        if (state.needsApiKey) {
+                            TextButton(onClick = {
+                                viewModel.clearError()
+                                onOpenSettings()
+                            }) { Text("Open Settings") }
+                        }
+                        TextButton(onClick = { viewModel.clearError() }) { Text("Dismiss") }
+                    }
                 }
             }
         }

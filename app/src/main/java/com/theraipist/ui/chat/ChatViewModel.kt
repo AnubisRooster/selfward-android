@@ -8,6 +8,7 @@ import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
+import com.theraipist.core.chat.MissingApiKeyException
 import com.theraipist.core.graph.InsightExtractor
 import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
@@ -86,7 +87,10 @@ class ChatViewModel @Inject constructor(
             runCatching { doSend(trimmed) }
                 .onFailure { e ->
                     _uiState.update {
-                        it.copy(errorMessage = e.message ?: "Something went wrong sending your message.")
+                        it.copy(
+                            errorMessage = e.message ?: "Something went wrong sending your message.",
+                            needsApiKey = e is MissingApiKeyException
+                        )
                     }
                 }
             _uiState.update { it.copy(isSending = false) }
@@ -206,7 +210,7 @@ class ChatViewModel @Inject constructor(
     }
 
     fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+        _uiState.update { it.copy(errorMessage = null, needsApiKey = false) }
     }
 
     fun clearReEntry() {

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.Provider
+import com.theraipist.core.embedding.EmbeddingModelCatalog
+import com.theraipist.core.embedding.EmbeddingModelDownloader
 import com.theraipist.core.local.DownloadProgress
 import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
@@ -21,11 +23,13 @@ import javax.inject.Inject
 
 private const val DOWNLOAD_POLL_INTERVAL_MS = 1000L
 
+/** [GGUFModelCatalog] model ids and [EmbeddingModelCatalog] ids never collide, so download state for both lives in one map. */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val secureSettings: SecureSettings,
     private val modelSettings: ModelSettings,
-    private val modelDownloader: ModelDownloader
+    private val modelDownloader: ModelDownloader,
+    private val embeddingModelDownloader: EmbeddingModelDownloader
 ) : ViewModel() {
 
     val provider = MutableStateFlow(secureSettings.provider)
@@ -35,6 +39,8 @@ class SettingsViewModel @Inject constructor(
     val useLocalModel = modelSettings.useLocalModel
     val localModelId = modelSettings.localModelId
     val useLocalTts = modelSettings.useLocalTts
+
+    val embeddingModel = EmbeddingModelCatalog.default
 
     private val _downloadStatus = MutableStateFlow<Map<String, DownloadStatus>>(emptyMap())
     val downloadStatus = _downloadStatus.asStateFlow()
@@ -67,7 +73,7 @@ class SettingsViewModel @Inject constructor(
 
     fun downloadModel(model: LocalModel) {
         modelDownloader.startDownload(model)
-        awaitVerification(model)
+        awaitGgufVerification(model)
     }
 
     fun cancelDownload(model: LocalModel) {
@@ -80,24 +86,60 @@ class SettingsViewModel @Inject constructor(
         refreshDownloadState()
     }
 
-    private fun refreshDownloadState() {
-        val statuses = GGUFModelCatalog.allModels.associate { it.id to modelDownloader.status(it) }
-        _downloadStatus.value = statuses
-        _downloadProgress.value = GGUFModelCatalog.allModels
-            .filter { statuses[it.id] == DownloadStatus.DOWNLOADING }
-            .mapNotNull { m -> modelDownloader.progress(m)?.let { m.id to it } }
-            .toMap()
-        GGUFModelCatalog.allModels
-            .filter { statuses[it.id] == DownloadStatus.VERIFYING && it.id !in awaitedDownloads }
-            .forEach { awaitVerification(it) }
+    fun downloadEmbeddingModel() {
+        embeddingModelDownloader.startDownload(embeddingModel)
+        awaitEmbeddingVerification()
     }
 
-    private fun awaitVerification(model: LocalModel) {
+    fun cancelEmbeddingDownload() {
+        embeddingModelDownloader.cancelDownload(embeddingModel)
+        refreshDownloadState()
+    }
+
+    fun deleteEmbeddingModel() {
+        embeddingModelDownloader.deleteDownload(embeddingModel)
+        refreshDownloadState()
+    }
+
+    private fun refreshDownloadState() {
+        val ggufStatuses = GGUFModelCatalog.allModels.associate { it.id to modelDownloader.status(it) }
+        val embeddingStatus = embeddingModelDownloader.status(embeddingModel)
+        _downloadStatus.value = ggufStatuses + (embeddingModel.id to embeddingStatus)
+
+        val ggufProgress = GGUFModelCatalog.allModels
+            .filter { ggufStatuses[it.id] == DownloadStatus.DOWNLOADING }
+            .mapNotNull { m -> modelDownloader.progress(m)?.let { m.id to it } }
+            .toMap()
+        val embeddingProgress = if (embeddingStatus == DownloadStatus.DOWNLOADING) {
+            embeddingModelDownloader.progress(embeddingModel)?.let { mapOf(embeddingModel.id to it) }.orEmpty()
+        } else {
+            emptyMap()
+        }
+        _downloadProgress.value = ggufProgress + embeddingProgress
+
+        GGUFModelCatalog.allModels
+            .filter { ggufStatuses[it.id] == DownloadStatus.VERIFYING && it.id !in awaitedDownloads }
+            .forEach { awaitGgufVerification(it) }
+        if (embeddingStatus == DownloadStatus.VERIFYING && embeddingModel.id !in awaitedDownloads) {
+            awaitEmbeddingVerification()
+        }
+    }
+
+    private fun awaitGgufVerification(model: LocalModel) {
         awaitedDownloads += model.id
         viewModelScope.launch {
             val result = modelDownloader.awaitCompletion(model)
             _downloadStatus.update { it + (model.id to result) }
             awaitedDownloads -= model.id
+        }
+    }
+
+    private fun awaitEmbeddingVerification() {
+        awaitedDownloads += embeddingModel.id
+        viewModelScope.launch {
+            val result = embeddingModelDownloader.awaitCompletion(embeddingModel)
+            _downloadStatus.update { it + (embeddingModel.id to result) }
+            awaitedDownloads -= embeddingModel.id
         }
     }
 }

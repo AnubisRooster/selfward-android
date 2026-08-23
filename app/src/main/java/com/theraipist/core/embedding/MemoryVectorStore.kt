@@ -1,6 +1,8 @@
 package com.theraipist.core.embedding
 
 import java.util.concurrent.ConcurrentHashMap
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class ScoredId(val id: String, val score: Float)
 
@@ -10,7 +12,8 @@ data class ScoredId(val id: String, val score: Float)
  * backing store is swapped for Room + a real ANN index in a later phase; the
  * retrieval logic here is provider-agnostic.
  */
-class MemoryVectorStore {
+@Singleton
+class MemoryVectorStore @Inject constructor() {
 
     private val vectors = ConcurrentHashMap<String, FloatArray>()
 

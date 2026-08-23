@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.theraipist.core.chat.Provider
+import com.theraipist.core.local.DownloadProgress
 import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
 
@@ -38,6 +39,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val downloadStatus by viewModel.downloadStatus.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val useLocalTts by viewModel.useLocalTts.collectAsState()
+    val embeddingModel = viewModel.embeddingModel
 
     LazyColumn(
         Modifier.fillMaxSize().padding(16.dp),
@@ -89,36 +91,36 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
-                        when (status) {
-                            DownloadStatus.NOT_DOWNLOADED ->
-                                TextButton(onClick = { viewModel.downloadModel(m) }) { Text("Download") }
-                            DownloadStatus.FAILED ->
-                                TextButton(onClick = { viewModel.downloadModel(m) }) { Text("Retry") }
-                            DownloadStatus.DOWNLOADING ->
-                                TextButton(onClick = { viewModel.cancelDownload(m) }) { Text("Cancel") }
-                            DownloadStatus.VERIFYING -> Text("Verifying…", style = MaterialTheme.typography.bodySmall)
-                            DownloadStatus.DOWNLOADED ->
-                                TextButton(onClick = { viewModel.deleteModel(m) }) { Text("Delete") }
-                        }
-                    }
-                    if (status == DownloadStatus.DOWNLOADING) {
-                        val progress = downloadProgress[m.id]
-                        if (progress != null && progress.totalBytes > 0) {
-                            LinearProgressIndicator(
-                                progress = { (progress.bytesDownloaded.toFloat() / progress.totalBytes).coerceIn(0f, 1f) },
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                            )
-                        } else {
-                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
-                        }
-                    }
-                    if (status == DownloadStatus.FAILED) {
-                        Text(
-                            "Download failed or the file didn't match — tap Retry.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error
+                        DownloadActionButton(
+                            status = status,
+                            onDownload = { viewModel.downloadModel(m) },
+                            onCancel = { viewModel.cancelDownload(m) },
+                            onDelete = { viewModel.deleteModel(m) }
                         )
                     }
+                    DownloadProgressAndError(status, downloadProgress[m.id])
+                }
+            }
+        }
+        item {
+            Text("Semantic memory", style = MaterialTheme.typography.titleSmall)
+            val embeddingStatus = downloadStatus[embeddingModel.id] ?: DownloadStatus.NOT_DOWNLOADED
+            Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(embeddingModel.name, style = MaterialTheme.typography.bodyLarge)
+                            val sizeMb = (embeddingModel.onnxSizeBytes + embeddingModel.vocabSizeBytes) / 1_000_000L
+                            Text("~$sizeMb MB · finds related past insights", style = MaterialTheme.typography.bodySmall)
+                        }
+                        DownloadActionButton(
+                            status = embeddingStatus,
+                            onDownload = viewModel::downloadEmbeddingModel,
+                            onCancel = viewModel::cancelEmbeddingDownload,
+                            onDelete = viewModel::deleteEmbeddingModel
+                        )
+                    }
+                    DownloadProgressAndError(embeddingStatus, downloadProgress[embeddingModel.id])
                 }
             }
         }
@@ -144,5 +146,42 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         item {
             Button(onClick = { viewModel.save() }) { Text("Save") }
         }
+    }
+}
+
+@Composable
+private fun DownloadActionButton(
+    status: DownloadStatus,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onDelete: () -> Unit
+) {
+    when (status) {
+        DownloadStatus.NOT_DOWNLOADED -> TextButton(onClick = onDownload) { Text("Download") }
+        DownloadStatus.FAILED -> TextButton(onClick = onDownload) { Text("Retry") }
+        DownloadStatus.DOWNLOADING -> TextButton(onClick = onCancel) { Text("Cancel") }
+        DownloadStatus.VERIFYING -> Text("Verifying…", style = MaterialTheme.typography.bodySmall)
+        DownloadStatus.DOWNLOADED -> TextButton(onClick = onDelete) { Text("Delete") }
+    }
+}
+
+@Composable
+private fun DownloadProgressAndError(status: DownloadStatus, progress: DownloadProgress?) {
+    if (status == DownloadStatus.DOWNLOADING) {
+        if (progress != null && progress.totalBytes > 0) {
+            LinearProgressIndicator(
+                progress = { (progress.bytesDownloaded.toFloat() / progress.totalBytes).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+            )
+        } else {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(top = 4.dp))
+        }
+    }
+    if (status == DownloadStatus.FAILED) {
+        Text(
+            "Download failed or the file didn't match — tap Retry.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error
+        )
     }
 }

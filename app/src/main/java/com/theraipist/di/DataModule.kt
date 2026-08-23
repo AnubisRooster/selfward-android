@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.chat.CloudChatService
+import com.theraipist.core.embedding.EmbeddingModelDownloader
+import com.theraipist.core.embedding.EmbeddingProviderFactory
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.local.ModelDownloader
 import com.theraipist.core.modality.ModalityRouter
@@ -16,6 +18,8 @@ import com.theraipist.core.voice.SttService
 import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.download.AndroidModelDownloader
+import com.theraipist.data.local.embedding.AndroidEmbeddingModelDownloader
+import com.theraipist.data.local.embedding.OnnxEmbeddingProvider
 import com.theraipist.data.local.llm.LlamaCppLocalService
 import com.theraipist.data.repository.RoomGraphRepository
 import com.theraipist.data.repository.RoomSessionRepository
@@ -64,6 +68,16 @@ object DataModule {
     @Singleton
     fun provideLocalTtsService(@ApplicationContext context: Context): LocalTtsService =
         AndroidTtsService(context)
+
+    @Provides
+    @Singleton
+    fun provideEmbeddingModelDownloader(@ApplicationContext context: Context): EmbeddingModelDownloader =
+        AndroidEmbeddingModelDownloader(context)
+
+    @Provides
+    @Singleton
+    fun provideEmbeddingProviderFactory(): EmbeddingProviderFactory =
+        EmbeddingProviderFactory { onnxFile, vocabFile -> OnnxEmbeddingProvider(onnxFile, vocabFile) }
 
     @Provides
     @Singleton

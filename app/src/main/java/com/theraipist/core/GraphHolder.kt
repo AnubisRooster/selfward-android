@@ -1,8 +1,13 @@
 package com.theraipist.core
 
+import com.theraipist.core.embedding.EmbeddingModelDownloader
+import com.theraipist.core.embedding.EmbeddingProvider
+import com.theraipist.core.embedding.EmbeddingProviderFactory
+import com.theraipist.core.embedding.MemoryVectorStore
 import com.theraipist.core.graph.GraphEdge
 import com.theraipist.core.graph.GraphNode
 import com.theraipist.core.graph.TherapyGraph
+import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.repository.GraphRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +18,10 @@ import javax.inject.Singleton
 
 @Singleton
 class GraphHolder @Inject constructor(
-    private val repository: GraphRepository
+    private val repository: GraphRepository,
+    private val embeddingModelDownloader: EmbeddingModelDownloader,
+    private val embeddingProviderFactory: EmbeddingProviderFactory,
+    private val memoryVectorStore: MemoryVectorStore
 ) {
     private val graph = TherapyGraph()
     private val _nodes = MutableStateFlow<List<GraphNode>>(emptyList())
@@ -24,6 +32,7 @@ class GraphHolder @Inject constructor(
     private var lastNodeId: String? = null
     private var loaded = false
     private val loadMutex = Mutex()
+    private var embeddingProvider: EmbeddingProvider? = null
 
     /** Loads the persisted graph into memory once; safe to call repeatedly/concurrently. */
     suspend fun ensureLoaded() {
@@ -47,6 +56,7 @@ class GraphHolder @Inject constructor(
             val node = graph.allNodes().last { it.id == id }
             runCatching { repository.saveNode(sessionId, node) }
             runCatching { repository.saveInsight(sessionId, text) }
+            embed(id, text)
             lastNodeId?.let { previous ->
                 val edgeId = graph.addEdge(previous, id, "next")
                 val edge = graph.allEdges().last { it.id == edgeId }
@@ -55,6 +65,36 @@ class GraphHolder @Inject constructor(
             lastNodeId = id
         }
         publish()
+    }
+
+    /**
+     * Nodes whose text is most semantically similar to [queryText], via the
+     * on-device embedding model. Empty if that model hasn't been downloaded, or
+     * if nothing has been embedded yet (only nodes added since the model became
+     * available are indexed - embeddings aren't persisted, matching
+     * MemoryVectorStore's current in-memory-only scope).
+     */
+    suspend fun findSimilar(queryText: String, k: Int = 5): List<GraphNode> {
+        val provider = readyEmbeddingProvider() ?: return emptyList()
+        val queryVector = runCatching { provider.embed(queryText) }.getOrNull() ?: return emptyList()
+        val nodesById = graph.allNodes().associateBy { it.id }
+        return memoryVectorStore.query(queryVector, k).mapNotNull { nodesById[it.id] }
+    }
+
+    private suspend fun embed(nodeId: String, text: String) {
+        val provider = readyEmbeddingProvider() ?: return
+        runCatching { memoryVectorStore.add(nodeId, provider.embed(text)) }
+    }
+
+    private fun readyEmbeddingProvider(): EmbeddingProvider? {
+        if (embeddingModelDownloader.status() != DownloadStatus.DOWNLOADED) return null
+        embeddingProvider?.let { return it }
+        return runCatching {
+            embeddingProviderFactory.create(
+                embeddingModelDownloader.onnxFile(),
+                embeddingModelDownloader.vocabFile()
+            )
+        }.getOrNull()?.also { embeddingProvider = it }
     }
 
     private fun publish() {

@@ -18,16 +18,22 @@ object ModalityRouter {
                 TherapyModality.JOURNAL
             t.contains("who am i") || t.contains("identity") || t.contains("true self") ->
                 TherapyModality.IDENTITY
+            // Adlerian territory: where the client is heading and where they fit,
+            // as distinct from IDENTITY's question of who they are.
+            t.contains("purpose") || t.contains("belong") || t.contains("goal") ||
+                t.contains("fit in") || t.contains("contribut") ->
+                TherapyModality.PURPOSE
             else -> TherapyModality.TALK
         }
     }
 
     /** Framework prompt key used to build the system prompt for a modality. */
     fun promptKey(modality: TherapyModality): String = when (modality) {
-        TherapyModality.ACTIVE_IMAGINATION -> "jungian"
+        TherapyModality.ACTIVE_IMAGINATION -> "active_imagination"
         TherapyModality.DREAM -> "jungian"
         TherapyModality.GROUNDING -> "dbt"
         TherapyModality.IDENTITY -> "existential"
+        TherapyModality.PURPOSE -> "adlerian"
         TherapyModality.ROLEPLAY -> "gestalt"
         TherapyModality.JOURNAL -> "humanistic"
         TherapyModality.AUDIO -> "integrated"

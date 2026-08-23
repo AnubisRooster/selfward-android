@@ -89,20 +89,24 @@ stop cloud processing entirely. Uninstalling removes all local data.
 
 ## Features
 
-**Conversation modes.** Eight modes shape how the app responds — Talk, Journal,
-Dream, Active Imagination, Roleplay, Grounding, Identity, and Audio. A mode is
-picked automatically from what you write, and you can override it per message.
+**Conversation modes.** Nine modes shape how the app responds. A mode is picked
+automatically from what you write, and you can override it per message.
 
-Each mode maps onto a therapeutic framing: Dream and Active Imagination use a
-Jungian frame, Grounding uses DBT, Identity uses existential, Roleplay uses
-Gestalt, Journal uses humanistic, and Talk/Audio use an integrated frame.
+| Mode                   | Therapeutic framing                            |
+| ---------------------- | ---------------------------------------------- |
+| **Talk** / **Audio**   | Integrated — draws on Jungian, Adlerian, DBT    |
+| **Journal**            | Humanistic / person-centred                    |
+| **Dream**              | Jungian                                        |
+| **Active Imagination** | Jungian active imagination, as a phased practice |
+| **Roleplay**           | Gestalt                                        |
+| **Grounding**          | DBT skills                                     |
+| **Identity**           | Existential                                    |
+| **Purpose**            | Adlerian — goals, belonging, contribution      |
 
-> `TherapyConfig` defines fifteen framework prompts, but `ModalityRouter`
-> currently reaches only the six above. `cbt`, `act`, `psychodynamic`, `somatic`,
-> `narrative`, `ifs`, `adlerian`, `free_form`, and `active_imagination` are
-> present in config but unreachable — the Active Imagination mode uses the
-> Jungian prompt rather than its own. Treat the other nine as scaffolding, not
-> shipped behaviour.
+> `TherapyConfig` defines fifteen framework prompts; the eight above are the ones
+> a user can reach. `cbt`, `act`, `psychodynamic`, `somatic`, `narrative`, `ifs`,
+> and `free_form` are present in config but not currently routed to — treat them
+> as scaffolding rather than shipped behaviour.
 
 **Streaming replies.** Replies arrive token by token as they are generated, from
 both cloud providers and the on-device model, rather than appearing all at once.

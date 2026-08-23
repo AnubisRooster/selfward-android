@@ -44,12 +44,11 @@ Project memory: architecture decisions and status. Keep this in sync with README
 - Feature-complete for a first release; not yet published. 159 JVM tests green.
 - **Not verified on physical hardware.** Streaming smoothness, embedding-download
   progress, and cloud TTS all need a device pass.
-- Known gap: `ModalityRouter.promptKey()` reaches only 6 of the 15 framework
-  prompts in `TherapyConfig`. `cbt`, `act`, `psychodynamic`, `somatic`,
-  `narrative`, `ifs`, `adlerian`, `free_form`, and `active_imagination` are
-  unreachable — and `TherapyModality.ACTIVE_IMAGINATION` maps to `jungian` rather
-  than its own prompt, which looks unintended. Docs must not advertise the
-  unreachable frameworks.
+- `ModalityRouter.promptKey()` reaches 8 of the 15 framework prompts. `cbt`,
+  `act`, `psychodynamic`, `somatic`, `narrative`, `ifs`, and `free_form` remain
+  unreachable scaffolding; docs must not advertise them.
+  `ModalityRouterTest.reachableFrameworksAreTheDocumentedEight` pins the set, so
+  changing it is deliberate and forces the docs to be updated with it.
 - Remaining: release keystore + AAB, Play store assets (screenshots need a
   device), privacy-policy hosting.
 

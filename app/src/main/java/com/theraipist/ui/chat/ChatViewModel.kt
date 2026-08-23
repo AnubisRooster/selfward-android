@@ -115,7 +115,7 @@ class ChatViewModel @Inject constructor(
         )
         sessionRepository.appendMessage(sid, assistantMessage)
         val insights = InsightExtractor.extract(reply)
-        graphHolder.addInsights(insights)
+        runCatching { graphHolder.addInsights(sid, insights) }
         _uiState.update {
             it.copy(
                 messages = it.messages + assistantMessage,

@@ -4,6 +4,7 @@ import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
 import com.theraipist.core.embedding.EmbeddingProvider
+import com.theraipist.core.embedding.MeanPooling
 import com.theraipist.core.embedding.WordPieceTokenizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -48,31 +49,19 @@ class OnnxEmbeddingProvider(
                         )
                     ).use { result ->
                         val hiddenStates = result.get(OUTPUT_NAME).get().value as Array<Array<FloatArray>>
-                        meanPool(hiddenStates[0], tokens.attentionMask)
+                        MeanPooling.pool(hiddenStates[0], tokens.attentionMask)
                     }
                 }
             }
         }
     }
 
-    /** Mean pooling over real (non-padding) tokens, per sentence-transformers' pooling for this model. */
-    private fun meanPool(tokenEmbeddings: Array<FloatArray>, attentionMask: LongArray): FloatArray {
-        val hiddenSize = tokenEmbeddings.firstOrNull()?.size ?: return FloatArray(0)
-        val sum = FloatArray(hiddenSize)
-        var validTokens = 0f
-        for (i in tokenEmbeddings.indices) {
-            if (attentionMask[i] == 0L) continue
-            validTokens += 1f
-            val embedding = tokenEmbeddings[i]
-            for (j in 0 until hiddenSize) sum[j] += embedding[j]
-        }
-        if (validTokens == 0f) return sum
-        for (j in 0 until hiddenSize) sum[j] /= validTokens
-        return sum
-    }
-
+    /**
+     * Releases the inference session. The [OrtEnvironment] is deliberately left
+     * alone: `getEnvironment()` hands back a process-wide singleton shared with
+     * any other session, so it is not this object's to close.
+     */
     fun close() {
         session.close()
-        env.close()
     }
 }

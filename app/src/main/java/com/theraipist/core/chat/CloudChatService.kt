@@ -22,6 +22,7 @@ class CloudChatService(
 
     override suspend fun send(messages: List<Message>): String {
         val config = secureSettings.apiConfig()
+        if (config.apiKey.isBlank()) throw MissingApiKeyException()
         val response = if (config.provider == Provider.ANTHROPIC) {
             client.post(config.baseUrl.trimEnd('/') + "/messages") {
                 header("x-api-key", config.apiKey)

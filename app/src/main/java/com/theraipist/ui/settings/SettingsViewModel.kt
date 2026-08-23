@@ -11,7 +11,7 @@ import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
 import com.theraipist.core.local.LocalModel
 import com.theraipist.core.local.ModelDownloader
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.core.settings.SecureSettings
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.theraipist.core.chat.Provider
@@ -42,7 +43,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val embeddingModel = viewModel.embeddingModel
 
     LazyColumn(
-        Modifier.fillMaxSize().padding(16.dp),
+        Modifier.fillMaxSize().padding(16.dp).testTag("settingsList"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
@@ -66,7 +67,11 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 Text("Use on-device model", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                Switch(checked = useLocalModel, onCheckedChange = viewModel::setUseLocalModel)
+                Switch(
+                    checked = useLocalModel,
+                    onCheckedChange = viewModel::setUseLocalModel,
+                    modifier = Modifier.testTag("useLocalModelSwitch")
+                )
             }
         }
         items(GGUFModelCatalog.allModels) { m ->
@@ -132,7 +137,11 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
-                Switch(checked = useLocalTts, onCheckedChange = viewModel::setUseLocalTts)
+                Switch(
+                    checked = useLocalTts,
+                    onCheckedChange = viewModel::setUseLocalTts,
+                    modifier = Modifier.testTag("useLocalTtsSwitch")
+                )
             }
             Text(
                 if (useLocalTts) {

@@ -1,6 +1,6 @@
 package com.theraipist.core
 
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.core.settings.SecureSettings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject

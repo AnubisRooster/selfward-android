@@ -5,14 +5,15 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.theraipist.core.chat.ApiConfig
 import com.theraipist.core.chat.Provider
+import com.theraipist.core.settings.SecureSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SecureSettings @Inject constructor(
+class EncryptedSecureSettings @Inject constructor(
     @ApplicationContext context: Context
-) {
+) : SecureSettings {
     private val appContext = context
 
     private val masterKey by lazy {
@@ -31,28 +32,28 @@ class SecureSettings @Inject constructor(
         )
     }
 
-    val provider: Provider
+    override val provider: Provider
         get() = Provider.valueOf(prefs.getString(KEY_PROVIDER, "OPENAI") ?: "OPENAI")
 
-    val apiKey: String?
+    override val apiKey: String?
         get() = prefs.getString(KEY_API_KEY, null)
 
-    val model: String
+    override val model: String
         get() = prefs.getString(KEY_MODEL, "gpt-4o-mini") ?: "gpt-4o-mini"
 
-    var useLocalModel: Boolean
+    override var useLocalModel: Boolean
         get() = prefs.getBoolean(KEY_USE_LOCAL, false)
         set(value) = prefs.edit().putBoolean(KEY_USE_LOCAL, value).apply()
 
-    var localModelId: String?
+    override var localModelId: String?
         get() = prefs.getString(KEY_LOCAL_MODEL, null)
         set(value) = prefs.edit().putString(KEY_LOCAL_MODEL, value).apply()
 
-    var useLocalTts: Boolean
+    override var useLocalTts: Boolean
         get() = prefs.getBoolean(KEY_USE_LOCAL_TTS, false)
         set(value) = prefs.edit().putBoolean(KEY_USE_LOCAL_TTS, value).apply()
 
-    fun save(provider: Provider, apiKey: String, model: String) {
+    override fun save(provider: Provider, apiKey: String, model: String) {
         prefs.edit()
             .putString(KEY_PROVIDER, provider.name)
             .putString(KEY_API_KEY, apiKey)
@@ -60,8 +61,7 @@ class SecureSettings @Inject constructor(
             .apply()
     }
 
-    /** Built fresh from the current stored values, so callers always see the latest saved settings. */
-    fun apiConfig(): ApiConfig {
+    override fun apiConfig(): ApiConfig {
         val currentProvider = provider
         val baseUrl = when (currentProvider) {
             Provider.OPENAI -> "https://api.openai.com/v1"

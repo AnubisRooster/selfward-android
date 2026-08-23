@@ -1,7 +1,7 @@
 package com.theraipist.core.chat
 
 import com.theraipist.core.model.Message
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.core.settings.SecureSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header

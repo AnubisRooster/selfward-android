@@ -62,7 +62,10 @@ fun ChatScreen(
         if (granted) stt.startListening(onFinal = { input = it })
     }
 
-    LaunchedEffect(state.messages.size) {
+    // Keyed on the last message's length as well as the count: while a reply is
+    // streaming the count never changes, so a size-only key would stop following
+    // the text as it grows.
+    LaunchedEffect(state.messages.size, state.messages.lastOrNull()?.content?.length) {
         if (state.messages.isNotEmpty()) {
             listState.scrollToItem(state.messages.lastIndex)
         }
@@ -129,7 +132,7 @@ fun ChatScreen(
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(state.messages) { message -> MessageBubble(message) }
+            items(state.messages, key = { it.id }) { message -> MessageBubble(message) }
         }
 
             Row(

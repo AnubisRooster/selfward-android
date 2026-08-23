@@ -29,6 +29,12 @@ internal object ChatProtocol {
     @Serializable
     data class StreamChunk(val choices: List<StreamChoice> = emptyList())
 
+    @Serializable
+    data class ApiError(val message: String? = null, val type: String? = null)
+
+    @Serializable
+    data class ErrorEnvelope(val error: ApiError? = null)
+
     fun buildRequest(messages: List<Message>, model: String): ChatRequest =
         ChatRequest(
             model = model,
@@ -43,4 +49,16 @@ internal object ChatProtocol {
             ?.firstOrNull()
             ?.delta
             ?.content
+
+    /**
+     * The error described by one `data:` payload, if it is an error report rather
+     * than a delta. Streaming endpoints answer 200 and then report rate limits,
+     * content filtering, and upstream outages in-band, so these have to be read
+     * off the stream rather than inferred from the HTTP status.
+     */
+    fun parseStreamError(payload: String): String? =
+        runCatching { json.decodeFromString<ErrorEnvelope>(payload) }
+            .getOrNull()
+            ?.error
+            ?.let { it.message ?: it.type }
 }

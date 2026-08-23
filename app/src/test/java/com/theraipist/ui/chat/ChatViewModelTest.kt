@@ -4,7 +4,11 @@ import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
+import com.theraipist.core.local.DownloadProgress
+import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.LocalLLMService
+import com.theraipist.core.local.LocalModel
+import com.theraipist.core.local.ModelDownloader
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.data.settings.SecureSettings
 import com.theraipist.core.voice.TtsService
@@ -87,6 +91,16 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
+    private class FakeModelDownloader : ModelDownloader {
+        override fun status(model: LocalModel): DownloadStatus = DownloadStatus.NOT_DOWNLOADED
+        override fun progress(model: LocalModel): DownloadProgress? = null
+        override fun localFile(model: LocalModel) = java.io.File("/fake/${model.fileName}")
+        override fun startDownload(model: LocalModel) {}
+        override fun cancelDownload(model: LocalModel) {}
+        override fun deleteDownload(model: LocalModel) {}
+        override suspend fun awaitCompletion(model: LocalModel): DownloadStatus = DownloadStatus.NOT_DOWNLOADED
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val mainDispatcher = UnconfinedTestDispatcher()
 
@@ -114,7 +128,8 @@ class ChatViewModelTest {
             GraphHolder(),
             FakeTtsService(),
             ModelSettings(SecureSettings(android.app.Application())),
-            FakeLocalLLMService()
+            FakeLocalLLMService(),
+            FakeModelDownloader()
         )
         return vm to repo
     }

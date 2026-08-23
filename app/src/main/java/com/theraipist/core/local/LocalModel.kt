@@ -12,6 +12,8 @@ data class LocalModel(
     val sizeBytes: Long,
     val minRamBytes: Long,
     val downloadUrl: String,
+    /** SHA-256 of the GGUF file, verified against Hugging Face's X-Linked-ETag after download. */
+    val sha256: String,
     val contextSize: Int = 4096,
     val quant: String = "Q4_K_M"
 )

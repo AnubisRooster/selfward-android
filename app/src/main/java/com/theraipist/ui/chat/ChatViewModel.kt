@@ -8,9 +8,11 @@ import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
 import com.theraipist.core.graph.InsightExtractor
+import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.local.LocalModel
+import com.theraipist.core.local.ModelDownloader
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
@@ -45,10 +47,9 @@ class ChatViewModel @Inject constructor(
     private val graphHolder: GraphHolder,
     private val ttsService: TtsService,
     private val modelSettings: ModelSettings,
-    private val localLLMService: LocalLLMService
+    private val localLLMService: LocalLLMService,
+    private val modelDownloader: ModelDownloader
 ) : ViewModel() {
-
-    private val modelDir = "/sdcard/Android/data/com.theraipist.app/files/models"
 
     private var sessionId: String? = null
     private var loadedModelId: String? = null
@@ -151,8 +152,9 @@ class ChatViewModel @Inject constructor(
 
     private suspend fun ensureLocalModel(model: LocalModel): Boolean {
         if (localLLMService.isModelLoaded() && loadedModelId == model.id) return true
+        if (modelDownloader.status(model) != DownloadStatus.DOWNLOADED) return false
         return runCatching {
-            localLLMService.load(model, "$modelDir/${model.fileName}")
+            localLLMService.load(model, modelDownloader.localFile(model).absolutePath)
             loadedModelId = model.id
             localLLMService.isModelLoaded()
         }.getOrDefault(false)

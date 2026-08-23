@@ -25,4 +25,16 @@ class InMemorySessionRepositoryTest {
         assertEquals(1, list.size)
         assertEquals("Session 1", list[0].title)
     }
+
+    @Test
+    fun deleteSessionRemovesItAndItsMessages() = runTest {
+        val repo = InMemorySessionRepository()
+        val session = repo.createSession(Persona(PersonaKind.THERAPIST), "Session 1")
+        repo.appendMessage(session.id, Message("1", Role.USER, "hi"))
+
+        repo.deleteSession(session.id)
+
+        assertTrue(repo.listSessions().isEmpty())
+        assertTrue(repo.getMessages(session.id).isEmpty())
+    }
 }

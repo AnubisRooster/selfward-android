@@ -38,7 +38,7 @@ import com.theraipist.core.model.Message
 import com.theraipist.core.model.Role
 
 @Composable
-fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
+fun ChatScreen(viewModel: ChatViewModel = hiltViewModel(), onOpenSessions: () -> Unit = {}) {
         val state by viewModel.uiState.collectAsState()
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
     var input by remember { mutableStateOf("") }
@@ -61,6 +61,12 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     }
 
     Column(Modifier.fillMaxSize()) {
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.End
+        ) {
+            TextButton(onClick = onOpenSessions) { Text("History") }
+        }
         state.reEntryMessage?.let { message ->
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,

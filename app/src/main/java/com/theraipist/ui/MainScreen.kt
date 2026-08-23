@@ -19,6 +19,7 @@ import com.theraipist.ui.about.AboutScreen
 import com.theraipist.ui.chat.ChatScreen
 import com.theraipist.ui.graph.GraphScreen
 import com.theraipist.ui.persona.PersonaScreen
+import com.theraipist.ui.sessions.SessionsScreen
 import com.theraipist.ui.settings.SettingsScreen
 
 private val ROUTES = listOf("chat", "persona", "graph", "settings", "about")
@@ -56,11 +57,21 @@ fun MainScreen() {
             startDestination = "chat",
             modifier = Modifier.fillMaxSize().padding(padding)
         ) {
-            composable("chat") { ChatScreen() }
+            composable("chat") {
+                ChatScreen(onOpenSessions = { navController.navigate("sessions") })
+            }
             composable("persona") { PersonaScreen() }
             composable("graph") { GraphScreen() }
             composable("settings") { SettingsScreen() }
             composable("about") { AboutScreen() }
+            composable("sessions") {
+                val reopenChat: () -> Unit = {
+                    navController.navigate("chat") {
+                        popUpTo("chat") { inclusive = true }
+                    }
+                }
+                SessionsScreen(onOpenSession = reopenChat, onNewSession = reopenChat)
+            }
         }
     }
 }

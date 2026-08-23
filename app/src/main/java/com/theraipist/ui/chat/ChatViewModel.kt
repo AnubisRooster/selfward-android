@@ -3,6 +3,7 @@ package com.theraipist.ui.chat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import android.media.MediaPlayer
+import com.theraipist.core.ActiveSessionHolder
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
@@ -48,7 +49,8 @@ class ChatViewModel @Inject constructor(
     private val ttsService: TtsService,
     private val modelSettings: ModelSettings,
     private val localLLMService: LocalLLMService,
-    private val modelDownloader: ModelDownloader
+    private val modelDownloader: ModelDownloader,
+    private val activeSessionHolder: ActiveSessionHolder
 ) : ViewModel() {
 
     private var sessionId: String? = null
@@ -59,8 +61,20 @@ class ChatViewModel @Inject constructor(
     private val _ttsEnabled = MutableStateFlow(false)
     val ttsEnabled = _ttsEnabled.asStateFlow()
 
+    init {
+        activeSessionHolder.consumePendingOpen()?.let { id -> openSession(id) }
+    }
+
     fun setTtsEnabled(enabled: Boolean) {
         _ttsEnabled.value = enabled
+    }
+
+    private fun openSession(id: String) {
+        sessionId = id
+        viewModelScope.launch {
+            val messages = sessionRepository.getMessages(id)
+            _uiState.update { it.copy(messages = messages) }
+        }
     }
 
     fun send(text: String) {

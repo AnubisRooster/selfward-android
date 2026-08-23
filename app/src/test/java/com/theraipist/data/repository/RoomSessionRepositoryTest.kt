@@ -52,4 +52,15 @@ class RoomSessionRepositoryTest {
         assertEquals(1, list.size)
         assertEquals("S1", list[0].title)
     }
+
+    @Test
+    fun deleteSessionRemovesItAndItsMessages() = runTest {
+        val session = repo.createSession(Persona(PersonaKind.THERAPIST), "S1")
+        repo.appendMessage(session.id, Message("1", Role.USER, "hi"))
+
+        repo.deleteSession(session.id)
+
+        assertEquals(0, repo.listSessions().size)
+        assertEquals(0, repo.getMessages(session.id).size)
+    }
 }

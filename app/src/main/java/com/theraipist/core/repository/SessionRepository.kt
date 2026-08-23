@@ -22,4 +22,7 @@ interface SessionRepository {
     suspend fun appendMessage(sessionId: String, message: Message)
     suspend fun getMessages(sessionId: String): List<Message>
     suspend fun listSessions(): List<SessionSummary>
+
+    /** Deletes the session and its messages. Graph nodes/insights derived from it are kept - the knowledge graph is one continuous memory, not scoped to any single session's transcript. */
+    suspend fun deleteSession(sessionId: String)
 }

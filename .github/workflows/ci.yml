@@ -38,14 +38,30 @@ jobs:
         with:
           arguments: ktlintCheck
 
+  check-release-secrets:
+    # The `secrets` context can't be referenced directly in a job-level `if:`
+    # (GitHub Actions restriction), so this gatekeeper job checks presence in
+    # a step and exposes it as an output the `release` job's `if:` can read.
+    runs-on: ubuntu-latest
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+    steps:
+      - id: check
+        run: |
+          if [ -n "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" ]; then
+            echo "has-secrets=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-secrets=false" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
     # Inert until the four RELEASE_* secrets exist (see build.gradle.kts's
     # signingConfigs.release for the local equivalent via env vars, and
     # store/listing.md's setup notes for how to generate the keystore and
     # add these as repo secrets). Skips entirely otherwise, so this job
     # never fails CI on a fork or before signing is set up.
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.RELEASE_KEYSTORE_BASE64 != ''
+    needs: [ build, check-release-secrets ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.check-release-secrets.outputs.has-secrets == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

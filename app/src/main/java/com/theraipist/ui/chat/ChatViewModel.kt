@@ -42,6 +42,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
 
+private const val TTS_FAILED_MESSAGE =
+    "Couldn't read that reply aloud. The reply itself is fine — only the audio failed."
+
 private const val EMPTY_REPLY_MESSAGE =
     "The model didn't send anything back. Please try again."
 
@@ -277,14 +280,24 @@ class ChatViewModel @Inject constructor(
     private fun speak(text: String) {
         if (modelSettings.useLocalTts.value) {
             runCatching { localTtsService.speak(text) }
+                .onFailure { reportPlaybackFailure() }
             return
         }
         viewModelScope.launch {
             runCatching {
                 val audio = ttsService.synthesize(TtsRequest(input = text))
                 playMp3(audio)
-            }
+            }.onFailure { reportPlaybackFailure() }
         }
+    }
+
+    /**
+     * Read-aloud is a side channel — the reply itself is already on screen, so a
+     * failure here is reported without disturbing the conversation. Staying silent
+     * would be indistinguishable from the feature simply not working.
+     */
+    private fun reportPlaybackFailure() {
+        _uiState.update { it.copy(errorMessage = TTS_FAILED_MESSAGE) }
     }
 
     private suspend fun playMp3(bytes: ByteArray) = withContext(Dispatchers.IO) {
@@ -299,9 +312,10 @@ class ChatViewModel @Inject constructor(
                 it.release()
                 file.delete()
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             player.release()
             file.delete()
+            throw e
         }
     }
 

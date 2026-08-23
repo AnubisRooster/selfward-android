@@ -1,6 +1,7 @@
 package com.theraipist.data.voice
 
 import com.theraipist.core.voice.SttService
+import com.theraipist.core.voice.SttServiceException
 import com.theraipist.core.settings.SecureSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
@@ -9,6 +10,7 @@ import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -44,9 +46,14 @@ class CloudSttService(
             bearerAuth(apiConfig.apiKey)
         }
         val body = response.bodyAsText()
+        if (!response.status.isSuccess()) {
+            throw SttServiceException("Transcription failed (${response.status.value}): ${body.take(500)}")
+        }
+        // Falling back to the raw body here would hand the caller an error
+        // payload as though the user had spoken it.
         return runCatching {
             Json { ignoreUnknownKeys = true }.decodeFromString<TranscriptionResponse>(body).text
-        }.getOrDefault(body)
+        }.getOrElse { throw SttServiceException("Could not read the transcription response.") }
     }
 
     override fun close() {

@@ -1,7 +1,14 @@
 package com.theraipist.core
 
+import com.theraipist.core.embedding.EmbeddingModelDownloader
+import com.theraipist.core.embedding.EmbeddingModelSpec
+import com.theraipist.core.embedding.EmbeddingProvider
+import com.theraipist.core.embedding.EmbeddingProviderFactory
+import com.theraipist.core.embedding.MemoryVectorStore
 import com.theraipist.core.graph.GraphEdge
 import com.theraipist.core.graph.GraphNode
+import com.theraipist.core.local.DownloadProgress
+import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.repository.GraphRepository
 import com.theraipist.core.repository.GraphSnapshot
 import kotlinx.coroutines.test.runTest
@@ -28,10 +35,44 @@ class GraphHolderTest {
         }
     }
 
+    private class FakeEmbeddingModelDownloader(private val downloaded: Boolean) : EmbeddingModelDownloader {
+        override fun status(model: EmbeddingModelSpec) =
+            if (downloaded) DownloadStatus.DOWNLOADED else DownloadStatus.NOT_DOWNLOADED
+        override fun progress(model: EmbeddingModelSpec): DownloadProgress? = null
+        override fun onnxFile(model: EmbeddingModelSpec) = java.io.File("/fake/model.onnx")
+        override fun vocabFile(model: EmbeddingModelSpec) = java.io.File("/fake/vocab.txt")
+        override fun startDownload(model: EmbeddingModelSpec) {}
+        override fun cancelDownload(model: EmbeddingModelSpec) {}
+        override fun deleteDownload(model: EmbeddingModelSpec) {}
+        override suspend fun awaitCompletion(model: EmbeddingModelSpec) =
+            if (downloaded) DownloadStatus.DOWNLOADED else DownloadStatus.FAILED
+    }
+
+    /** Deterministic "embedding": one-hot on a fixed vocabulary index for the text, so exact matches score highest. */
+    private class FakeEmbeddingProvider(private val vocabulary: List<String>) : EmbeddingProvider {
+        override suspend fun embed(text: String): FloatArray {
+            val vector = FloatArray(vocabulary.size)
+            val index = vocabulary.indexOf(text)
+            if (index >= 0) vector[index] = 1f
+            return vector
+        }
+    }
+
+    private fun buildHolder(
+        repository: GraphRepository = RecordingGraphRepository(),
+        downloaded: Boolean = false,
+        vocabulary: List<String> = emptyList()
+    ): GraphHolder = GraphHolder(
+        repository,
+        FakeEmbeddingModelDownloader(downloaded),
+        EmbeddingProviderFactory { _, _ -> FakeEmbeddingProvider(vocabulary) },
+        MemoryVectorStore()
+    )
+
     @Test
     fun addInsightsPersistsNodesEdgesAndInsights() = runTest {
         val repo = RecordingGraphRepository()
-        val holder = GraphHolder(repo)
+        val holder = buildHolder(repository = repo)
 
         holder.addInsights("s1", listOf("felt calmer", "named the fear"))
 
@@ -46,7 +87,7 @@ class GraphHolderTest {
     fun ensureLoadedRestoresPriorSessionAndContinuesTheChain() = runTest {
         val restoredNode = GraphNode(id = "n_1", label = "Mother", kind = "insight", createdAt = 100)
         val repo = RecordingGraphRepository(initial = GraphSnapshot(listOf(restoredNode), emptyList()))
-        val holder = GraphHolder(repo)
+        val holder = buildHolder(repository = repo)
 
         holder.addInsights("s2", listOf("new insight"))
 
@@ -58,7 +99,7 @@ class GraphHolderTest {
     @Test
     fun ensureLoadedOnlyQueriesTheRepositoryOnce() = runTest {
         val repo = RecordingGraphRepository()
-        val holder = GraphHolder(repo)
+        val holder = buildHolder(repository = repo)
 
         holder.addInsights("s1", listOf("a"))
         holder.addInsights("s1", listOf("b"))
@@ -66,5 +107,27 @@ class GraphHolderTest {
 
         assertEquals(1, repo.loadAllCallCount)
         assertTrue(holder.nodes.value.map { it.label }.containsAll(listOf("a", "b")))
+    }
+
+    @Test
+    fun findSimilarReturnsEmptyWhenEmbeddingModelNotDownloaded() = runTest {
+        val holder = buildHolder(downloaded = false)
+        holder.addInsights("s1", listOf("felt anxious about work"))
+
+        val result = holder.findSimilar("anxious")
+
+        assertTrue(result.isEmpty())
+    }
+
+    @Test
+    fun findSimilarReturnsTheMatchingNodeOnceEmbeddingModelIsDownloaded() = runTest {
+        val vocabulary = listOf("felt anxious about work", "had a great day", "anxious")
+        val holder = buildHolder(downloaded = true, vocabulary = vocabulary)
+        holder.addInsights("s1", listOf("felt anxious about work", "had a great day"))
+
+        val result = holder.findSimilar("felt anxious about work", k = 1)
+
+        assertEquals(1, result.size)
+        assertEquals("felt anxious about work", result.first().label)
     }
 }

@@ -89,6 +89,26 @@ class ChatScreenTest {
         override suspend fun loadAll(): GraphSnapshot = GraphSnapshot(emptyList(), emptyList())
     }
 
+    private class FakeEmbeddingModelDownloader : com.theraipist.core.embedding.EmbeddingModelDownloader {
+        override fun status(model: com.theraipist.core.embedding.EmbeddingModelSpec) = DownloadStatus.NOT_DOWNLOADED
+        override fun progress(model: com.theraipist.core.embedding.EmbeddingModelSpec): DownloadProgress? = null
+        override fun onnxFile(model: com.theraipist.core.embedding.EmbeddingModelSpec) = java.io.File("/fake/model.onnx")
+        override fun vocabFile(model: com.theraipist.core.embedding.EmbeddingModelSpec) = java.io.File("/fake/vocab.txt")
+        override fun startDownload(model: com.theraipist.core.embedding.EmbeddingModelSpec) {}
+        override fun cancelDownload(model: com.theraipist.core.embedding.EmbeddingModelSpec) {}
+        override fun deleteDownload(model: com.theraipist.core.embedding.EmbeddingModelSpec) {}
+        override suspend fun awaitCompletion(model: com.theraipist.core.embedding.EmbeddingModelSpec) = DownloadStatus.FAILED
+    }
+
+    private fun buildGraphHolder() = GraphHolder(
+        FakeGraphRepository(),
+        FakeEmbeddingModelDownloader(),
+        com.theraipist.core.embedding.EmbeddingProviderFactory { _, _ ->
+            throw UnsupportedOperationException("embedding model never downloaded in these tests")
+        },
+        com.theraipist.core.embedding.MemoryVectorStore()
+    )
+
     private class FakeModelDownloader : ModelDownloader {
         override fun status(model: LocalModel) = DownloadStatus.NOT_DOWNLOADED
         override fun progress(model: LocalModel): DownloadProgress? = null
@@ -125,7 +145,7 @@ class ChatScreenTest {
         TherapyPromptBuilder,
         SafetyGuardrails,
         PersonaHolder(),
-        GraphHolder(FakeGraphRepository()),
+        buildGraphHolder(),
         FakeTtsService(),
         FakeLocalTtsService(),
         ModelSettings(SecureSettings(ApplicationProvider.getApplicationContext())),

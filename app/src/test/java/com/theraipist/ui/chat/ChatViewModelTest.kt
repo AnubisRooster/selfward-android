@@ -100,9 +100,11 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
-    private class FakeLocalTtsService : com.theraipist.core.voice.LocalTtsService {
+    private class FakeLocalTtsService(private val fail: Boolean = false) :
+        com.theraipist.core.voice.LocalTtsService {
         var spokenText: String? = null
         override fun speak(text: String, onDone: () -> Unit) {
+            if (fail) throw RuntimeException("tts engine unavailable")
             spokenText = text
             onDone()
         }
@@ -434,6 +436,20 @@ class ChatViewModelTest {
             "an empty assistant turn was written to the session",
             repo.stored.none { it.role == Role.ASSISTANT }
         )
+    }
+
+    @Test
+    fun ttsFailure_isSurfacedButLeavesTheReplyIntact() = runTest {
+        val settings = ModelSettings(FakeSecureSettings()).also { it.setUseLocalTts(true) }
+        val (vm, repo) = buildVm(modelSettings = settings, localTts = FakeLocalTtsService(fail = true))
+        vm.setTtsEnabled(true)
+
+        vm.send("hi")
+
+        assertTrue("a silent read-aloud failure told the user nothing", !vm.uiState.value.errorMessage.isNullOrBlank())
+        // Read-aloud is a side channel: the reply must survive its failure.
+        assertEquals("reflection: hi", vm.uiState.value.messages.single { it.role == Role.ASSISTANT }.content)
+        assertTrue(repo.stored.any { it.role == Role.ASSISTANT })
     }
 
     @Test

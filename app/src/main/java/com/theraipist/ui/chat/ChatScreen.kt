@@ -8,11 +8,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -35,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
+import com.theraipist.core.modality.TherapyModality
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Role
 
@@ -72,6 +75,11 @@ fun ChatScreen(
         ) {
             TextButton(onClick = onOpenSessions) { Text("History") }
         }
+        ModalityPicker(
+            selected = state.selectedModality,
+            onSelect = viewModel::selectModality,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
         state.reEntryMessage?.let { message ->
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
@@ -173,4 +181,35 @@ private fun MessageBubble(message: Message) {
             }
         }
     }
+}
+
+@Composable
+private fun ModalityPicker(
+    selected: TherapyModality?,
+    onSelect: (TherapyModality?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        item {
+            FilterChip(selected = selected == null, onClick = { onSelect(null) }, label = { Text("Auto") })
+        }
+        items(TherapyModality.values().toList()) { modality ->
+            FilterChip(
+                selected = selected == modality,
+                onClick = { onSelect(if (selected == modality) null else modality) },
+                label = { Text(modalityLabel(modality)) }
+            )
+        }
+    }
+}
+
+private fun modalityLabel(modality: TherapyModality): String = when (modality) {
+    TherapyModality.TALK -> "Talk"
+    TherapyModality.JOURNAL -> "Journal"
+    TherapyModality.ACTIVE_IMAGINATION -> "Active Imagination"
+    TherapyModality.ROLEPLAY -> "Roleplay"
+    TherapyModality.DREAM -> "Dream"
+    TherapyModality.GROUNDING -> "Grounding"
+    TherapyModality.IDENTITY -> "Identity"
+    TherapyModality.AUDIO -> "Audio"
 }

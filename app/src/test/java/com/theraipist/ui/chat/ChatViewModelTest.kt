@@ -214,6 +214,34 @@ class ChatViewModelTest {
     }
 
     @Test
+    fun selectModality_overridesAutoDetection() = runTest {
+        val chatService = FakeChatService()
+        val (vm, _) = buildVm(chatService)
+        vm.selectModality(com.theraipist.core.modality.TherapyModality.GROUNDING)
+
+        vm.send("just chatting about my day, nothing dream-related")
+
+        val systemMessage = chatService.lastMessages?.firstOrNull { it.role == Role.SYSTEM }
+        assertNotNull(systemMessage)
+        assertTrue(systemMessage!!.content.contains("DBT therapist"))
+        val userMessage = vm.uiState.value.messages.first { it.role == Role.USER }
+        assertEquals("GROUNDING", userMessage.modality)
+    }
+
+    @Test
+    fun selectModality_clearedByPassingNull() = runTest {
+        val chatService = FakeChatService()
+        val (vm, _) = buildVm(chatService)
+        vm.selectModality(com.theraipist.core.modality.TherapyModality.GROUNDING)
+        vm.selectModality(null)
+
+        vm.send("I had a dream about flying")
+
+        val systemMessage = chatService.lastMessages?.firstOrNull { it.role == Role.SYSTEM }
+        assertTrue(systemMessage!!.content.contains("Jungian analyst"))
+    }
+
+    @Test
     fun assistantReply_boundaryViolationIsIntercepted() = runTest {
         val chatService = FakeChatService(replyPrefix = "you need medication for ")
         val (vm, _) = buildVm(chatService)

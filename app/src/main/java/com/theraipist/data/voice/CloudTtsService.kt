@@ -2,7 +2,7 @@ package com.theraipist.data.voice
 
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.core.settings.SecureSettings
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth

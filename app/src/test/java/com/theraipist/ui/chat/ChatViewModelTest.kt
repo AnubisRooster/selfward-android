@@ -11,7 +11,7 @@ import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.local.LocalModel
 import com.theraipist.core.local.ModelDownloader
 import com.theraipist.core.voice.TtsRequest
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.data.settings.FakeSecureSettings
 import com.theraipist.core.voice.TtsService
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
@@ -179,7 +179,7 @@ class ChatViewModelTest {
             buildGraphHolder(),
             FakeTtsService(),
             FakeLocalTtsService(),
-            ModelSettings(SecureSettings(android.app.Application())),
+            ModelSettings(FakeSecureSettings()),
             FakeLocalLLMService(),
             FakeModelDownloader(),
             activeSessionHolder

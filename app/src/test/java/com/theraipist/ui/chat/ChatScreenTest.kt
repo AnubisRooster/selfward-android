@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.test.core.app.ApplicationProvider
 import com.theraipist.core.ActiveSessionHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
@@ -33,7 +32,7 @@ import com.theraipist.core.safety.SafetyGuardrails
 import com.theraipist.core.voice.LocalTtsService
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.data.settings.FakeSecureSettings
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -148,7 +147,7 @@ class ChatScreenTest {
         buildGraphHolder(),
         FakeTtsService(),
         FakeLocalTtsService(),
-        ModelSettings(SecureSettings(ApplicationProvider.getApplicationContext())),
+        ModelSettings(FakeSecureSettings()),
         FakeLocalLLMService(),
         FakeModelDownloader(),
         ActiveSessionHolder()

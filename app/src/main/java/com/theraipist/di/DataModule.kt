@@ -23,7 +23,8 @@ import com.theraipist.data.local.embedding.OnnxEmbeddingProvider
 import com.theraipist.data.local.llm.LlamaCppLocalService
 import com.theraipist.data.repository.RoomGraphRepository
 import com.theraipist.data.repository.RoomSessionRepository
-import com.theraipist.data.settings.SecureSettings
+import com.theraipist.core.settings.SecureSettings
+import com.theraipist.data.settings.EncryptedSecureSettings
 import com.theraipist.data.voice.AndroidTtsService
 import com.theraipist.data.voice.CloudSttService
 import com.theraipist.data.voice.CloudTtsService
@@ -92,7 +93,7 @@ object DataModule {
     @Provides
     @Singleton
     fun provideSecureSettings(@ApplicationContext context: Context): SecureSettings =
-        SecureSettings(context)
+        EncryptedSecureSettings(context)
 
     @Provides
     fun provideModalityRouter(): ModalityRouter = ModalityRouter

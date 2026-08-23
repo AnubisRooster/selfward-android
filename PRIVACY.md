@@ -1,35 +1,94 @@
 # Privacy Policy — therAIpist
 
-therAIpist is a private AI therapy companion. Your wellbeing and privacy are central
-to its design.
+therAIpist is a private AI companion for self-reflection. This policy describes
+exactly what happens to what you write, including the cases where it leaves your
+device.
+
+_Last updated: 23 August 2026._
 
 ## What we collect
-- **Nothing by default.** The app stores conversations only on your device in a local
-  encrypted database (Android `EncryptedSharedPreferences` + Room).
-- **API keys** you enter are stored only in **device-local encrypted storage** and are
-  never transmitted to anyone except the AI provider you explicitly choose.
-- If you use a **cloud provider** (OpenAI, OpenRouter, Anthropic), your messages are
-  sent to that provider to generate responses, subject to that provider's privacy
-  policy.
 
-## On-device processing
-therAIpist supports **fully on-device** inference via bundled GGUF models and
-local embeddings (llama.cpp + ONNX Runtime). When using local models, no conversation
-data leaves the device.
+**Nothing.** There is no account, no analytics SDK, no advertising, no telemetry,
+and no crash reporting. The developer receives no data about you or your use of
+the app, and cannot read your sessions.
 
-## Data we do not sell
-We do not sell, share, or monetize your data. There is no analytics SDK and no
-advertising in the app.
+## Where your conversations are stored
+
+Your sessions, messages, extracted insights, and memory graph are stored in a
+local database in the app's private storage on your device.
+
+That storage is sandboxed from other apps by Android, and on any modern device it
+is covered by the operating system's full-disk encryption, which is tied to your
+device passcode. **The app does not apply its own separate encryption layer to
+this database.** If your threat model includes someone with unlocked access to
+your device, treat these conversations as readable.
+
+Your **API keys** are handled differently: they are stored in Android's
+`EncryptedSharedPreferences`, backed by the Android Keystore, separately from
+conversation data.
+
+## When your data leaves your device
+
+**If you use a cloud provider**, the messages in your conversation — including
+anything personal you have shared — are sent to the provider you selected in
+Settings, in order to generate a reply:
+
+- OpenAI
+- OpenRouter
+- Anthropic
+
+Once sent, that data is handled under **that provider's** privacy policy and
+retention practices, not this one. Please read the policy of whichever provider
+you choose. Your API key is transmitted only to that same provider, to
+authenticate the request.
+
+**If you enable cloud text-to-speech**, the text of the assistant's replies is
+sent to the same provider to be turned into audio.
+
+**If you use an on-device model**, nothing leaves your device. Inference and
+embeddings both run locally, and the app works with no network connection.
+
+**Speech-to-text is always on-device.** Your microphone audio is processed by
+Android's own speech recognition and is never uploaded by this app in any
+configuration.
+
+## What we never do
+
+We do not sell, rent, share, or monetise your data. We do not build profiles. We
+do not use your conversations to train any model.
 
 ## Crisis handling
-If the app detects crisis language, it surfaces supportive resources (e.g. 988) and
-encourages contacting professionals or emergency services. It does not contact
-anyone on your behalf.
+
+If the app detects language suggesting distress or self-harm, it displays
+supportive resources — including the 988 Suicide & Crisis Lifeline, the Crisis
+Text Line, and emergency services — and encourages you to contact a professional.
+
+This detection runs locally on your device, on your own text, before any network
+request. **It does not notify anyone, contact any service, or report anything on
+your behalf.** No third party is ever alerted about the content of your messages.
+
+Note also that this detection is pattern matching, not clinical judgement: it
+catches common phrasings and will miss others. It is not a monitoring or
+safeguarding system.
+
+## Children
+
+therAIpist is not directed at children and should not be used by anyone under 13.
 
 ## Your control
-- Delete any session anytime from within the app (local storage).
-- Remove your API key from Settings to stop cloud processing.
-- Uninstalling the app removes all locally stored data.
+
+- **Delete any session** at any time from within the app.
+- **Remove your API key** in Settings to stop all cloud processing.
+- **Switch to an on-device model** to stop sending anything off the device.
+- **Uninstall the app** to remove all locally stored data, including sessions,
+  insights, keys, and any downloaded models.
+
+## Not medical care
+
+therAIpist is not a licensed therapist, psychologist, or medical provider, and is
+not a substitute for professional mental-health care. In a crisis, contact
+emergency services or a crisis line — in the US, call or text **988**.
 
 ## Contact
+
 For privacy questions, contact the developer via the project repository.

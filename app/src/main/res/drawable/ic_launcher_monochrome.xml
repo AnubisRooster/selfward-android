@@ -3,8 +3,6 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Two crescents leaning toward a still centre. Stroked so the weight holds
-         at launcher size; all content sits inside the adaptive-icon safe zone. -->
     <path
         android:strokeColor="#FFFFFF"
         android:strokeWidth="8"

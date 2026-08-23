@@ -7,18 +7,19 @@ therAIpist — AI Therapy Companion
 A private, modality-aware AI therapy companion for reflection and growth.
 
 ## Long description
-therAIpist is a private AI therapy companion grounded in Jungian, Adlerian, and
-DBT traditions. It helps you explore your inner life through multiple therapeutic
-modalities — talk therapy, journaling, dreamwork, active imagination, role-play,
-grounding, and identity exploration.
+therAIpist is a private AI companion for self-reflection, drawing on Jungian,
+DBT, Gestalt, existential, and humanistic framings. It helps you explore your
+inner life through eight conversation modes — talk, journaling, dreamwork,
+active imagination, role-play, grounding, identity exploration, and audio.
 
 Features:
 - Multiple therapy modalities that adapt to what you share.
 - Persistent memory: therAIpist remembers themes across sessions via a local
   knowledge graph and extracted insights (stored on-device).
 - Crisis-aware: detects distress and surfaces supportive resources (e.g. 988).
-- Privacy-first: conversations are stored locally and encrypted; API keys never
-  leave your device except to the provider you choose.
+- Privacy-first: no account, no analytics, no ads. Conversations stay in the
+  app's private storage on your device; API keys are held in Android Keystore-
+  backed encrypted storage and are sent only to the provider you choose.
 - On-device option: run GGUF language models and local embeddings entirely offline
   with llama.cpp + ONNX Runtime — no data leaves the phone.
 - Voice: speak and listen with text-to-speech and speech-to-text.
@@ -32,7 +33,7 @@ contact local emergency services or a crisis hotline.
 Health & Fitness (Medical subcategory may require sensitive-content declaration).
 
 ## Tags / keywords
-ai therapy, jungian, adlerian, dbt, journaling, dreamwork, mental health, self
+ai therapy, jungian, dbt, gestalt, journaling, dreamwork, mental health, self
 reflection, mindfulness, private, on-device, offline, chatbot
 
 ## Content rating
@@ -45,11 +46,18 @@ a content-rating questionnaire answer noting therapeutic crisis-support messagin
 - POST_NOTIFICATIONS: gentle session reminders (Android 13+).
 
 ## Data safety form summary
-- Data collected: none by default. If cloud provider used, text sent only to that
-  provider per its policy.
-- Data encrypted in transit (HTTPS) and at rest (Android EncryptedSharedPreferences).
+- Data collected by the developer: none. No account, analytics, telemetry, or ads.
+- If a cloud provider is selected, message text is sent to that provider (OpenAI,
+  OpenRouter, or Anthropic) to generate a reply, per that provider's policy.
+  Optional cloud TTS sends reply text to the same provider.
+- Microphone audio is processed on-device only and is never uploaded.
+- Data encrypted in transit: yes (HTTPS).
+- Data encrypted at rest: **declare accurately.** API keys are in Android
+  Keystore-backed EncryptedSharedPreferences, but the conversation database is a
+  plain Room/SQLite file relying on Android's app sandbox and device-level full-
+  disk encryption. Do not declare app-level at-rest encryption for conversations
+  unless SQLCipher (or equivalent) is actually added.
 - No data shared with third parties beyond the user-selected AI provider.
-- No ads, no analytics.
 
 ## Assets still needed
 - Feature graphic (1024×500), icon (512×512), at least 2 phone screenshots

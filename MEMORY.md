@@ -21,17 +21,44 @@ Project memory: architecture decisions and status. Keep this in sync with README
   providers, SecureSettings).
 
 ## Testing
-- JVM unit tests (Turbine-free, `Dispatchers.setMain` for ViewModels). CI runs
-  `assembleDebug`, `lintDebug`, `testDebugUnitTest`. No local Android SDK → rely on CI.
-- Avoid Ktor `MockEngine` (NoClassDefFoundError). Keep HTTP/JSON logic engine-free.
-- Robolectric used for Room tests (`RoomSessionRepositoryTest`).
+- JVM unit tests (`Dispatchers.setMain` for ViewModels). CI runs `assembleDebug`,
+  `lintDebug`, `testDebugUnitTest`. Building locally works fine with JDK 17 + the
+  Android SDK (API 34) installed via `sdkmanager`; prefer verifying locally before
+  pushing rather than using CI as the first check.
+- **Use Ktor `MockEngine` for anything network-facing.** An earlier note here said
+  to avoid it and keep HTTP logic engine-free. That was wrong, and it was
+  expensive: it meant every service test substituted a fake at the interface
+  boundary, so nothing exercised the real Ktor call. A streaming implementation
+  that never streamed (`client.post()` buffers the whole body) shipped green, and
+  two voice services returned HTTP error bodies as audio and as transcripts, all
+  invisible to the suite. `CloudChatServiceTest` and `CloudTtsServiceTest` now
+  drive a real client.
+- A regression test must be able to fail. When fixing a bug, confirm the new test
+  fails against the old code before landing it — several tests here pass against
+  both versions and only one actually pins the behaviour.
+- Robolectric used for Room tests (`RoomSessionRepositoryTest`) and Compose screen
+  tests. Anything touching Keystore, TTS, or DownloadManager sits behind a `core`
+  interface so tests can substitute fakes.
 
-## Status (as of Phase 9)
-- Phases 0–8 complete & green (62 JVM tests). Phase 9 (About screen) added.
-- Remaining: voice-in-chat integration, knowledge-graph visualization, insights
-  persistence, CI hardening (detekt/ktlint), release/AAB build, Play store assets.
+## Status
+- Feature-complete for a first release; not yet published. 159 JVM tests green.
+- **Not verified on physical hardware.** Streaming smoothness, embedding-download
+  progress, and cloud TTS all need a device pass.
+- Known gap: `ModalityRouter.promptKey()` reaches only 6 of the 15 framework
+  prompts in `TherapyConfig`. `cbt`, `act`, `psychodynamic`, `somatic`,
+  `narrative`, `ifs`, `adlerian`, `free_form`, and `active_imagination` are
+  unreachable — and `TherapyModality.ACTIVE_IMAGINATION` maps to `jungian` rather
+  than its own prompt, which looks unintended. Docs must not advertise the
+  unreachable frameworks.
+- Remaining: release keystore + AAB, Play store assets (screenshots need a
+  device), privacy-policy hosting.
 
 ## Conventions
 - iOS `TherapyConfig`/personas are source of truth; Android `TherapyConfig.kt` must
   stay in sync. Do NOT run `xcodegen generate` on iOS (breaks linking).
-- TDD: write tests before implementation. Verify via CI (no local build).
+- TDD: write tests before implementation, and verify locally before pushing.
+- Docs make claims about a therapy app's safety and privacy, so they get checked
+  against the code, not against previous docs. Conversations live in a plain Room
+  database protected by the app sandbox and device FDE — the app adds no
+  encryption layer of its own, and nothing should say otherwise unless SQLCipher
+  is actually added.

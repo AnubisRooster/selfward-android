@@ -7,6 +7,7 @@ import com.theraipist.core.embedding.EmbeddingModelDownloader
 import com.theraipist.core.embedding.EmbeddingModelSpec
 import com.theraipist.core.local.DownloadProgress
 import com.theraipist.core.local.DownloadStatus
+import com.theraipist.core.local.PairedDownload
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -28,19 +29,10 @@ class AndroidEmbeddingModelDownloader(private val context: Context) : EmbeddingM
         get() = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
     override fun status(model: EmbeddingModelSpec): DownloadStatus =
-        combine(onnxAsset(model).status(), vocabAsset(model).status())
+        PairedDownload.combineStatus(onnxAsset(model).status(), vocabAsset(model).status())
 
-    override fun progress(model: EmbeddingModelSpec): DownloadProgress? {
-        val onnx = onnxAsset(model)
-        val vocab = vocabAsset(model)
-        val onnxProgress = onnx.progress()
-        val vocabProgress = vocab.progress()
-        if (onnxProgress == null && vocabProgress == null) return null
-        val downloaded = (onnxProgress?.bytesDownloaded ?: model.onnxSizeBytes) +
-            (vocabProgress?.bytesDownloaded ?: model.vocabSizeBytes)
-        val total = model.onnxSizeBytes + model.vocabSizeBytes
-        return DownloadProgress(downloaded, total)
-    }
+    override fun progress(model: EmbeddingModelSpec): DownloadProgress? =
+        PairedDownload.combineProgress(onnxAsset(model).half(), vocabAsset(model).half())
 
     override fun onnxFile(model: EmbeddingModelSpec): File = onnxAsset(model).file
     override fun vocabFile(model: EmbeddingModelSpec): File = vocabAsset(model).file
@@ -63,15 +55,7 @@ class AndroidEmbeddingModelDownloader(private val context: Context) : EmbeddingM
     override suspend fun awaitCompletion(model: EmbeddingModelSpec): DownloadStatus {
         val onnxResult = onnxAsset(model).awaitCompletion()
         val vocabResult = vocabAsset(model).awaitCompletion()
-        return combine(onnxResult, vocabResult)
-    }
-
-    private fun combine(a: DownloadStatus, b: DownloadStatus): DownloadStatus = when {
-        a == DownloadStatus.FAILED || b == DownloadStatus.FAILED -> DownloadStatus.FAILED
-        a == DownloadStatus.DOWNLOADING || b == DownloadStatus.DOWNLOADING -> DownloadStatus.DOWNLOADING
-        a == DownloadStatus.VERIFYING || b == DownloadStatus.VERIFYING -> DownloadStatus.VERIFYING
-        a == DownloadStatus.NOT_DOWNLOADED || b == DownloadStatus.NOT_DOWNLOADED -> DownloadStatus.NOT_DOWNLOADED
-        else -> DownloadStatus.DOWNLOADED
+        return PairedDownload.combineStatus(onnxResult, vocabResult)
     }
 
     private fun onnxAsset(model: EmbeddingModelSpec) = Asset(
@@ -122,6 +106,8 @@ class AndroidEmbeddingModelDownloader(private val context: Context) : EmbeddingM
                 else -> DownloadStatus.DOWNLOADING
             }
         }
+
+        fun half() = PairedDownload.Half(status(), progress(), sizeBytes)
 
         fun progress(): DownloadProgress? {
             val downloadId = findDownloadId() ?: return null

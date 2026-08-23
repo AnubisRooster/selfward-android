@@ -39,14 +39,16 @@ should be kept in sync with the iOS `TransferModels.swift` / `PersonaService.swi
   Pure logic verified with `GGUFModelCatalogTest`, `ModelSelectorTest`,
   `CosineSimilarityTest`, `MemoryVectorStoreTest`.
 - **Phase 5 — TTS/STT**: `TtsRequest` (engine-free JSON body, tested with
-  `encodeDefaults` + `response_format` wire key), `TtsService`/`SttService`
-  interfaces, `CloudTtsService` (OpenAI `/audio/speech`, Ktor) + `CloudSttService`
-  (Whisper `/audio/transcriptions`, multipart), and on-device `AndroidTtsService`
-  (`TextToSpeech`) / `AndroidSttService` (`SpeechRecognizer`). Verified with
-  `TtsRequestTest`.
+  `encodeDefaults` + `response_format` wire key), the `TtsService` interface,
+  `CloudTtsService` (OpenAI `/audio/speech`, Ktor), and on-device
+  `AndroidTtsService` (`TextToSpeech`) / `AndroidSttService` (`SpeechRecognizer`).
+  Verified with `TtsRequestTest` and `CloudTtsServiceTest`.
+  Speech-to-text is on-device only — a cloud Whisper path existed as unwired
+  scaffolding and was removed, since uploading microphone audio cuts against the
+  app's privacy promise and `AndroidSttService` already serves the live flow.
 - **Phase 6 — Hilt DI**: `NetworkModule` (`HttpClient`, `ApiConfig`) + `DataModule`
   (database, `RoomSessionRepository`, `LlamaCppLocalService`, `CloudTtsService`,
-  `CloudSttService`, `ChatService`, core `object` providers) in `SingletonComponent`.
+  `ChatService`, core `object` providers) in `SingletonComponent`.
   Validated by Hilt's kapt step in `assembleDebug`.
 - **Phase 7 — UI**: `ChatViewModel` + `PersonaViewModel` (Hilt), `MainScreen` NavHost w/
   bottom nav (Chat/Persona/Graph), `ChatScreen`, `PersonaScreen`, `GraphScreen`

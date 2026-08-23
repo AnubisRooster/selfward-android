@@ -4,10 +4,14 @@ import com.theraipist.config.CompanionGender
 import com.theraipist.config.CompanionPersonality
 import com.theraipist.config.PersonaKind
 import com.theraipist.config.SpiritualTradition
+import com.theraipist.core.graph.GraphEdge
+import com.theraipist.core.graph.GraphNode
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
 import com.theraipist.core.repository.Session
+import com.theraipist.data.local.entity.GraphEdgeEntity
+import com.theraipist.data.local.entity.GraphNodeEntity
 import com.theraipist.data.local.entity.MessageEntity
 import com.theraipist.data.local.entity.SessionEntity
 
@@ -58,4 +62,36 @@ internal fun MessageEntity.toDomain(): Message = Message(
     content = content,
     createdAt = createdAt,
     modality = modality
+)
+
+internal fun GraphNode.toEntity(sessionId: String): GraphNodeEntity = GraphNodeEntity(
+    id = id,
+    sessionId = sessionId,
+    label = label,
+    kind = kind,
+    createdAt = createdAt
+)
+
+internal fun GraphNodeEntity.toDomain(): GraphNode = GraphNode(
+    id = id,
+    label = label,
+    kind = kind,
+    createdAt = createdAt
+)
+
+internal fun GraphEdge.toEntity(sessionId: String): GraphEdgeEntity = GraphEdgeEntity(
+    id = id,
+    sessionId = sessionId,
+    sourceId = sourceId,
+    targetId = targetId,
+    label = label,
+    weight = weight
+)
+
+internal fun GraphEdgeEntity.toDomain(): GraphEdge = GraphEdge(
+    id = id,
+    sourceId = sourceId,
+    targetId = targetId,
+    label = label,
+    weight = weight
 )

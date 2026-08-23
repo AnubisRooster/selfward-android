@@ -4,6 +4,8 @@ import com.theraipist.config.CompanionGender
 import com.theraipist.config.CompanionPersonality
 import com.theraipist.config.PersonaKind
 import com.theraipist.config.SpiritualTradition
+import com.theraipist.core.graph.GraphEdge
+import com.theraipist.core.graph.GraphNode
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
@@ -69,5 +71,28 @@ class SessionMappersTest {
         assertEquals("hello", back.content)
         assertEquals("jungian", back.modality)
         assertEquals(123, back.createdAt)
+    }
+
+    @Test
+    fun graphNodeRoundTripsWithSession() {
+        val n = GraphNode(id = "n_1", label = "Anxiety", kind = "emotion", createdAt = 555)
+        val e = n.toEntity("sessX")
+        assertEquals("n_1", e.id)
+        assertEquals("sessX", e.sessionId)
+        assertEquals("Anxiety", e.label)
+        assertEquals("emotion", e.kind)
+        assertEquals(555, e.createdAt)
+        assertEquals(n, e.toDomain())
+    }
+
+    @Test
+    fun graphEdgeRoundTripsWithSession() {
+        val edge = GraphEdge(id = "e_1", sourceId = "n_1", targetId = "n_2", label = "next", weight = 0.5f)
+        val e = edge.toEntity("sessX")
+        assertEquals("sessX", e.sessionId)
+        assertEquals("n_1", e.sourceId)
+        assertEquals("n_2", e.targetId)
+        assertEquals(0.5f, e.weight)
+        assertEquals(edge, e.toDomain())
     }
 }

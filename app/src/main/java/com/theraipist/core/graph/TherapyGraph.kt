@@ -2,7 +2,12 @@ package com.theraipist.core.graph
 
 import java.util.concurrent.atomic.AtomicLong
 
-data class GraphNode(val id: String, val label: String, val kind: String?)
+data class GraphNode(
+    val id: String,
+    val label: String,
+    val kind: String?,
+    val createdAt: Long = System.currentTimeMillis()
+)
 data class GraphEdge(
     val id: String,
     val sourceId: String,
@@ -59,4 +64,18 @@ class TherapyGraph {
 
     fun allNodes(): List<GraphNode> = nodes.values.toList()
     fun allEdges(): List<GraphEdge> = edges.values.toList()
+
+    /**
+     * Repopulates this graph from persisted [nodes]/[edges], preserving their original
+     * ids, and advances the id counter past the highest restored suffix so newly added
+     * nodes/edges never collide with a restored id.
+     */
+    fun restore(nodes: List<GraphNode>, edges: List<GraphEdge>) {
+        nodes.forEach { this.nodes[it.id] = it }
+        edges.forEach { this.edges[it.id] = it }
+        val maxSuffix = (nodes.map { it.id } + edges.map { it.id })
+            .mapNotNull { it.substringAfterLast('_').toLongOrNull() }
+            .maxOrNull() ?: 0L
+        counter.updateAndGet { maxOf(it, maxSuffix) }
+    }
 }

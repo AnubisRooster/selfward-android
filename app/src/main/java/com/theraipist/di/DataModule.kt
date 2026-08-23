@@ -9,12 +9,14 @@ import com.theraipist.core.local.ModelDownloader
 import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.safety.SafetyGuardrails
+import com.theraipist.core.repository.GraphRepository
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.voice.SttService
 import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.download.AndroidModelDownloader
 import com.theraipist.data.local.llm.LlamaCppLocalService
+import com.theraipist.data.repository.RoomGraphRepository
 import com.theraipist.data.repository.RoomSessionRepository
 import com.theraipist.data.settings.SecureSettings
 import com.theraipist.data.voice.CloudSttService
@@ -41,6 +43,11 @@ object DataModule {
     @Singleton
     fun provideSessionRepository(db: TherAIpistDatabase): SessionRepository =
         RoomSessionRepository(db)
+
+    @Provides
+    @Singleton
+    fun provideGraphRepository(db: TherAIpistDatabase): GraphRepository =
+        RoomGraphRepository(db)
 
     @Provides
     @Singleton

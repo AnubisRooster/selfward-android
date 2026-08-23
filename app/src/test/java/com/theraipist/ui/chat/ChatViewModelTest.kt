@@ -15,8 +15,12 @@ import com.theraipist.core.voice.TtsService
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
+import com.theraipist.core.graph.GraphEdge
+import com.theraipist.core.graph.GraphNode
 import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
+import com.theraipist.core.repository.GraphRepository
+import com.theraipist.core.repository.GraphSnapshot
 import com.theraipist.core.repository.Session
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.repository.SessionSummary
@@ -91,6 +95,13 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
+    private class FakeGraphRepository : GraphRepository {
+        override suspend fun saveNode(sessionId: String, node: GraphNode) {}
+        override suspend fun saveEdge(sessionId: String, edge: GraphEdge) {}
+        override suspend fun saveInsight(sessionId: String, text: String) {}
+        override suspend fun loadAll(): GraphSnapshot = GraphSnapshot(emptyList(), emptyList())
+    }
+
     private class FakeModelDownloader : ModelDownloader {
         override fun status(model: LocalModel): DownloadStatus = DownloadStatus.NOT_DOWNLOADED
         override fun progress(model: LocalModel): DownloadProgress? = null
@@ -125,7 +136,7 @@ class ChatViewModelTest {
             TherapyPromptBuilder,
             SafetyGuardrails,
             PersonaHolder(),
-            GraphHolder(),
+            GraphHolder(FakeGraphRepository()),
             FakeTtsService(),
             ModelSettings(SecureSettings(android.app.Application())),
             FakeLocalLLMService(),

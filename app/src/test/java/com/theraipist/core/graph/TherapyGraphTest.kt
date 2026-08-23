@@ -37,4 +37,28 @@ class TherapyGraphTest {
         }
         assertTrue("expected IllegalArgumentException for unknown nodes", threw)
     }
+
+    @Test
+    fun restoreRepopulatesWithOriginalIds() {
+        val g = TherapyGraph()
+        val restoredNode = GraphNode(id = "n_5", label = "Mother", kind = "person")
+        val otherNode = GraphNode(id = "n_6", label = "Job", kind = "context")
+        val restoredEdge = GraphEdge(id = "e_7", sourceId = "n_5", targetId = "n_6", label = "next", weight = null)
+
+        g.restore(listOf(restoredNode, otherNode), listOf(restoredEdge))
+
+        assertEquals(listOf(restoredNode, otherNode), g.allNodes())
+        assertEquals(listOf(restoredEdge), g.allEdges())
+        assertEquals(listOf("n_6"), g.neighbors("n_5").map { it.id })
+    }
+
+    @Test
+    fun restoreAdvancesCounterPastRestoredIds() {
+        val g = TherapyGraph()
+        g.restore(listOf(GraphNode(id = "n_10", label = "Old", kind = null)), emptyList())
+
+        val newId = g.addNode("New", null)
+
+        assertEquals("n_11", newId)
+    }
 }

@@ -16,6 +16,7 @@ internal object AnthropicProtocol {
 
     private const val DEFAULT_MAX_TOKENS = 1024
     private const val CONTENT_BLOCK_DELTA = "content_block_delta"
+    private const val ERROR = "error"
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -35,7 +36,14 @@ internal object AnthropicProtocol {
     data class StreamDelta(val type: String? = null, val text: String? = null)
 
     @Serializable
-    data class StreamEvent(val type: String? = null, val delta: StreamDelta? = null)
+    data class ApiError(val message: String? = null, val type: String? = null)
+
+    @Serializable
+    data class StreamEvent(
+        val type: String? = null,
+        val delta: StreamDelta? = null,
+        val error: ApiError? = null
+    )
 
     fun buildRequest(messages: List<Message>, model: String): ChatRequest {
         val system = messages.firstOrNull { it.role == Role.SYSTEM }?.content
@@ -50,5 +58,17 @@ internal object AnthropicProtocol {
         val event = runCatching { json.decodeFromString<StreamEvent>(payload) }.getOrNull() ?: return null
         if (event.type != CONTENT_BLOCK_DELTA) return null
         return event.delta?.text
+    }
+
+    /**
+     * The error described by one `data:` payload, if it is an `error` event rather
+     * than a delta. Anthropic answers 200 and then reports overload, rate limits,
+     * and content filtering in-band, so these have to be read off the stream rather
+     * than inferred from the HTTP status.
+     */
+    fun parseStreamError(payload: String): String? {
+        val event = runCatching { json.decodeFromString<StreamEvent>(payload) }.getOrNull() ?: return null
+        if (event.type != ERROR) return null
+        return event.error?.let { it.message ?: it.type } ?: ERROR
     }
 }

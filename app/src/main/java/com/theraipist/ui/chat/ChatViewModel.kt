@@ -8,6 +8,7 @@ import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
 import com.theraipist.core.chat.ChatService
+import com.theraipist.core.chat.ChatServiceException
 import com.theraipist.core.chat.MissingApiKeyException
 import com.theraipist.core.graph.InsightExtractor
 import com.theraipist.core.local.DownloadStatus
@@ -27,15 +28,22 @@ import com.theraipist.core.voice.LocalTtsService
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
+
+private const val EMPTY_REPLY_MESSAGE =
+    "The model didn't send anything back. Please try again."
 
 private const val BOUNDARY_FALLBACK_MESSAGE =
     "I want to be careful here — I can't diagnose or prescribe anything. " +
@@ -131,15 +139,18 @@ class ChatViewModel @Inject constructor(
         val insights = InsightExtractor.extract(reply)
         runCatching { graphHolder.addInsights(sid, insights) }
         _uiState.update { it.copy(graphNodes = graphHolder.nodes.value) }
-        if (_ttsEnabled.value) {
+        if (reply.isNotBlank() && _ttsEnabled.value) {
             speak(reply)
         }
     }
 
     /**
-     * Streams the reply into a live-updating assistant message bubble (added empty,
-     * then grown chunk by chunk as the model/provider emits text), boundary-checks
-     * and persists the final text once the stream completes, and returns it.
+     * Streams the reply into a live-updating assistant bubble (added empty, then
+     * grown as text arrives). The boundary check runs on each partial rather than
+     * only on the finished reply, so a violating sentence is never rendered even
+     * briefly, and whatever arrived is settled on the way out of both the success
+     * and the failure path — otherwise a mid-stream error would leave text on
+     * screen that was never written to the session the model is shown next turn.
      */
     private suspend fun streamReply(
         sessionId: String,
@@ -148,27 +159,67 @@ class ChatViewModel @Inject constructor(
     ): String {
         val assistantId = "a-${System.nanoTime()}"
         _uiState.update {
-            it.copy(messages = it.messages + Message(id = assistantId, role = Role.ASSISTANT, content = "", modality = modality.name))
+            it.copy(
+                messages = it.messages +
+                    Message(id = assistantId, role = Role.ASSISTANT, content = "", modality = modality.name)
+            )
         }
 
         val accumulated = StringBuilder()
-        produceReply(conversation).collect { delta ->
-            accumulated.append(delta)
-            _uiState.update { state ->
-                state.copy(messages = state.messages.map { if (it.id == assistantId) it.copy(content = accumulated.toString()) else it })
-            }
+        try {
+            produceReply(conversation)
+                .takeWhile { delta ->
+                    accumulated.append(delta)
+                    !safety.detectBoundaryViolation(accumulated.toString())
+                }
+                .collect { showPartial(assistantId, accumulated.toString()) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            settleReply(sessionId, assistantId, accumulated.toString(), modality)
+            throw e
         }
 
-        val rawReply = accumulated.toString()
-        val finalReply = if (safety.detectBoundaryViolation(rawReply)) BOUNDARY_FALLBACK_MESSAGE else rawReply
-        _uiState.update { state ->
-            state.copy(messages = state.messages.map { if (it.id == assistantId) it.copy(content = finalReply) else it })
+        val reply = settleReply(sessionId, assistantId, accumulated.toString(), modality)
+        if (reply.isBlank()) throw ChatServiceException(EMPTY_REPLY_MESSAGE)
+        return reply
+    }
+
+    /**
+     * Applies the boundary check to whatever was accumulated, writes it through to
+     * storage, and returns the text left on screen. A blank result means nothing
+     * usable arrived, so the placeholder is dropped rather than leaving an empty
+     * bubble in the UI and an empty assistant turn in the session history.
+     */
+    private suspend fun settleReply(
+        sessionId: String,
+        assistantId: String,
+        raw: String,
+        modality: TherapyModality
+    ): String {
+        val finalReply = if (safety.detectBoundaryViolation(raw)) BOUNDARY_FALLBACK_MESSAGE else raw
+        if (finalReply.isBlank()) {
+            _uiState.update { state ->
+                state.copy(messages = state.messages.filterNot { it.id == assistantId })
+            }
+            return ""
         }
+        showPartial(assistantId, finalReply)
         sessionRepository.appendMessage(
             sessionId,
             Message(id = assistantId, role = Role.ASSISTANT, content = finalReply, modality = modality.name)
         )
         return finalReply
+    }
+
+    private fun showPartial(assistantId: String, content: String) {
+        _uiState.update { state ->
+            state.copy(
+                messages = state.messages.map {
+                    if (it.id == assistantId) it.copy(content = content) else it
+                }
+            )
+        }
     }
 
     /** Shows a gentle check-in if the most recent prior session ended on a crisis message. */
@@ -188,7 +239,29 @@ class ChatViewModel @Inject constructor(
         val id = modelSettings.localModelId.value ?: return chatService.sendStreaming(conversation)
         val model = GGUFModelCatalog.byId(id) ?: return chatService.sendStreaming(conversation)
         if (!ensureLocalModel(model)) return chatService.sendStreaming(conversation)
-        return localLLMService.stream(conversation)
+        return localWithCloudFallback(conversation)
+    }
+
+    /**
+     * On-device generation, falling back to the cloud when it fails outright or
+     * produces nothing — native inference can OOM or hit a malformed chat template,
+     * and a silent empty reply is indistinguishable from a broken model. Once any
+     * text has been emitted the fallback is off the table: switching sources
+     * mid-sentence would splice two different replies together.
+     */
+    private fun localWithCloudFallback(conversation: List<Message>): Flow<String> = flow {
+        var emitted = false
+        try {
+            localLLMService.stream(conversation).collect { delta ->
+                emitted = true
+                emit(delta)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (emitted) throw e
+        }
+        if (!emitted) emitAll(chatService.sendStreaming(conversation))
     }
 
     private suspend fun ensureLocalModel(model: LocalModel): Boolean {

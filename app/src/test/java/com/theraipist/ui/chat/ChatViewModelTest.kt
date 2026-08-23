@@ -28,6 +28,7 @@ import com.theraipist.core.repository.SessionSummary
 import com.theraipist.core.safety.SafetyGuardrails
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -115,6 +116,55 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
+    /** Emits [deltas] one at a time, then optionally fails — the mid-stream error case. */
+    private class ChunkedChatService(
+        private val deltas: List<String>,
+        private val failAfter: Boolean = false
+    ) : ChatService {
+        override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flow {
+            deltas.forEach { emit(it) }
+            if (failAfter) throw RuntimeException("connection reset")
+        }
+    }
+
+    /** Emits [deltas], running [afterEach] once the collector has processed each one. */
+    private class ObservingChatService(
+        private val deltas: List<String>,
+        private val afterEach: () -> Unit
+    ) : ChatService {
+        override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flow {
+            deltas.forEach {
+                emit(it)
+                afterEach()
+            }
+        }
+    }
+
+    /** A loadable on-device model whose generation behaviour the test controls. */
+    private class ProgrammableLocalLLMService(
+        private val deltas: List<String> = emptyList(),
+        private val throwOnStream: Boolean = false
+    ) : LocalLLMService {
+        private var loaded = false
+        override suspend fun isModelLoaded(): Boolean = loaded
+        override suspend fun load(model: LocalModel, path: String) { loaded = true }
+        override fun stream(messages: List<Message>) = kotlinx.coroutines.flow.flow {
+            if (throwOnStream) throw RuntimeException("native inference failed")
+            deltas.forEach { emit(it) }
+        }
+        override fun close() { loaded = false }
+    }
+
+    private class DownloadedModelDownloader : ModelDownloader {
+        override fun status(model: LocalModel): DownloadStatus = DownloadStatus.DOWNLOADED
+        override fun progress(model: LocalModel): DownloadProgress? = null
+        override fun localFile(model: LocalModel) = java.io.File("/fake/${model.fileName}")
+        override fun startDownload(model: LocalModel) {}
+        override fun cancelDownload(model: LocalModel) {}
+        override fun deleteDownload(model: LocalModel) {}
+        override suspend fun awaitCompletion(model: LocalModel): DownloadStatus = DownloadStatus.DOWNLOADED
+    }
+
     private class FakeGraphRepository : GraphRepository {
         override suspend fun saveNode(sessionId: String, node: GraphNode) {}
         override suspend fun saveEdge(sessionId: String, edge: GraphEdge) {}
@@ -168,7 +218,11 @@ class ChatViewModelTest {
     private fun buildVm(
         chatService: ChatService = FakeChatService(),
         repo: FakeSessionRepository = FakeSessionRepository(),
-        activeSessionHolder: ActiveSessionHolder = ActiveSessionHolder()
+        activeSessionHolder: ActiveSessionHolder = ActiveSessionHolder(),
+        localLLMService: LocalLLMService = FakeLocalLLMService(),
+        modelDownloader: ModelDownloader = FakeModelDownloader(),
+        modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()),
+        localTts: FakeLocalTtsService = FakeLocalTtsService()
     ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
             repo,
@@ -179,14 +233,21 @@ class ChatViewModelTest {
             PersonaHolder(),
             buildGraphHolder(),
             FakeTtsService(),
-            FakeLocalTtsService(),
-            ModelSettings(FakeSecureSettings()),
-            FakeLocalLLMService(),
-            FakeModelDownloader(),
+            localTts,
+            modelSettings,
+            localLLMService,
+            modelDownloader,
             activeSessionHolder
         )
         return vm to repo
     }
+
+    /** ModelSettings wired to the on-device path with [modelId] selected. */
+    private fun localModelSettings(modelId: String = "tinyllama-1.1b") =
+        ModelSettings(FakeSecureSettings()).also {
+            it.setUseLocalModel(true)
+            it.setLocalModelId(modelId)
+        }
 
     @Test
     fun send_appendsUserThenAssistant() = runTest {
@@ -313,6 +374,146 @@ class ChatViewModelTest {
         val (vm2, _) = buildVm(repo = repo, activeSessionHolder = holder)
 
         assertTrue(vm2.uiState.value.messages.any { it.content == "first session message" })
+    }
+
+    @Test
+    fun missingApiKey_leavesNoEmptyAssistantBubbleBehind() = runTest {
+        val (vm, repo) = buildVm(MissingKeyChatService())
+        vm.send("hello")
+        assertTrue(vm.uiState.value.needsApiKey)
+        assertTrue(
+            "placeholder bubble was left on screen",
+            vm.uiState.value.messages.none { it.role == Role.ASSISTANT }
+        )
+        assertTrue(repo.stored.none { it.role == Role.ASSISTANT })
+    }
+
+    @Test
+    fun midStreamFailure_keepsPartialTextAndPersistsIt() = runTest {
+        val chatService = ChunkedChatService(listOf("Hello", " there"), failAfter = true)
+        val (vm, repo) = buildVm(chatService)
+        vm.send("hi")
+
+        val shown = vm.uiState.value.messages.single { it.role == Role.ASSISTANT }
+        assertEquals("Hello there", shown.content)
+        // The visible reply must also be in storage, or the next turn's prompt
+        // would tell the model it never replied.
+        val persisted = repo.stored.single { it.role == Role.ASSISTANT }
+        assertEquals("Hello there", persisted.content)
+        assertTrue(!vm.uiState.value.errorMessage.isNullOrBlank())
+    }
+
+    @Test
+    fun boundaryViolation_neverAppearsInAnyEmittedState() = runTest {
+        val chatService = ChunkedChatService(listOf("You should ", "start taking ", "lithium daily."))
+        val (vm, _) = buildVm(chatService)
+
+        val rendered = mutableListOf<String>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) {
+            vm.uiState.collect { state -> state.messages.forEach { rendered += it.content } }
+        }
+        vm.send("what should I do")
+        job.cancel()
+
+        assertTrue(
+            "violating text was rendered before being swapped out",
+            rendered.none { it.contains("start taking") }
+        )
+        val reply = vm.uiState.value.messages.single { it.role == Role.ASSISTANT }
+        assertTrue(reply.content.contains("can't diagnose"))
+    }
+
+    @Test
+    fun emptyReply_surfacesAnErrorAndPersistsNothing() = runTest {
+        val (vm, repo) = buildVm(ChunkedChatService(emptyList()))
+        vm.send("hi")
+
+        assertTrue(!vm.uiState.value.errorMessage.isNullOrBlank())
+        assertTrue(vm.uiState.value.messages.none { it.role == Role.ASSISTANT })
+        assertTrue(
+            "an empty assistant turn was written to the session",
+            repo.stored.none { it.role == Role.ASSISTANT }
+        )
+    }
+
+    @Test
+    fun emptyReply_doesNotInvokeTts() = runTest {
+        val settings = ModelSettings(FakeSecureSettings()).also { it.setUseLocalTts(true) }
+        val tts = FakeLocalTtsService()
+        val (vm, _) = buildVm(ChunkedChatService(emptyList()), modelSettings = settings, localTts = tts)
+        vm.setTtsEnabled(true)
+
+        vm.send("hi")
+
+        assertEquals(null, tts.spokenText)
+    }
+
+    @Test
+    fun localModelThrowing_fallsBackToCloud() = runTest {
+        val cloud = FakeChatService()
+        val (vm, _) = buildVm(
+            chatService = cloud,
+            localLLMService = ProgrammableLocalLLMService(throwOnStream = true),
+            modelDownloader = DownloadedModelDownloader(),
+            modelSettings = localModelSettings()
+        )
+        vm.send("I had a dream about flying")
+
+        val reply = vm.uiState.value.messages.single { it.role == Role.ASSISTANT }
+        assertTrue("expected the cloud reply, got '${reply.content}'", reply.content.startsWith("reflection: "))
+    }
+
+    @Test
+    fun localModelProducingNothing_fallsBackToCloud() = runTest {
+        val cloud = FakeChatService()
+        val (vm, _) = buildVm(
+            chatService = cloud,
+            localLLMService = ProgrammableLocalLLMService(deltas = emptyList()),
+            modelDownloader = DownloadedModelDownloader(),
+            modelSettings = localModelSettings()
+        )
+        vm.send("I had a dream about flying")
+
+        val reply = vm.uiState.value.messages.single { it.role == Role.ASSISTANT }
+        assertTrue("expected the cloud reply, got '${reply.content}'", reply.content.startsWith("reflection: "))
+    }
+
+    @Test
+    fun localModelProducingText_isUsedWithoutCallingCloud() = runTest {
+        val cloud = FakeChatService()
+        val (vm, _) = buildVm(
+            chatService = cloud,
+            localLLMService = ProgrammableLocalLLMService(deltas = listOf("local ", "reply")),
+            modelDownloader = DownloadedModelDownloader(),
+            modelSettings = localModelSettings()
+        )
+        vm.send("I had a dream about flying")
+
+        val reply = vm.uiState.value.messages.single { it.role == Role.ASSISTANT }
+        assertEquals("local reply", reply.content)
+        assertEquals(null, cloud.lastMessages)
+    }
+
+    /**
+     * Snapshots the visible reply after each delta is emitted. Collecting uiState
+     * from outside would not work: it is a StateFlow, so a test that drives the
+     * whole stream synchronously only ever observes the conflated final value.
+     */
+    @Test
+    fun streamingReply_growsIncrementallyInTheUi() = runTest {
+        val snapshots = mutableListOf<String>()
+        lateinit var underTest: ChatViewModel
+        val service = ObservingChatService(listOf("one ", "two ", "three")) {
+            underTest.uiState.value.messages
+                .firstOrNull { it.role == Role.ASSISTANT }
+                ?.let { snapshots += it.content }
+        }
+        val (vm, _) = buildVm(service)
+        underTest = vm
+
+        vm.send("hi")
+
+        assertEquals(listOf("one ", "one two ", "one two three"), snapshots)
     }
 
     @Test

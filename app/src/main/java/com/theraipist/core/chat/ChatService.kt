@@ -1,9 +1,11 @@
 package com.theraipist.core.chat
 
 import com.theraipist.core.model.Message
+import kotlinx.coroutines.flow.Flow
 
 interface ChatService {
-    suspend fun send(messages: List<Message>): String
+    /** Emits incremental text deltas as the reply is generated, not the full reply at once. */
+    fun sendStreaming(messages: List<Message>): Flow<String>
 }
 
 open class ChatServiceException(message: String) : Exception(message)

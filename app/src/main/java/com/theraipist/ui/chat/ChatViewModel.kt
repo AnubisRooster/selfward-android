@@ -28,6 +28,7 @@ import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -126,26 +127,48 @@ class ChatViewModel @Inject constructor(
 
         val promptKey = modalityRouter.promptKey(modality)
         val conversation = promptBuilder.buildConversation(persona, promptKey, history, trimmed)
-        val rawReply = produceReply(conversation)
-        val reply = if (safety.detectBoundaryViolation(rawReply)) BOUNDARY_FALLBACK_MESSAGE else rawReply
-        val assistantMessage = Message(
-            id = "a-${System.nanoTime()}",
-            role = Role.ASSISTANT,
-            content = reply,
-            modality = modality.name
-        )
-        sessionRepository.appendMessage(sid, assistantMessage)
+        val reply = streamReply(sid, conversation, modality)
         val insights = InsightExtractor.extract(reply)
         runCatching { graphHolder.addInsights(sid, insights) }
-        _uiState.update {
-            it.copy(
-                messages = it.messages + assistantMessage,
-                graphNodes = graphHolder.nodes.value
-            )
-        }
+        _uiState.update { it.copy(graphNodes = graphHolder.nodes.value) }
         if (_ttsEnabled.value) {
             speak(reply)
         }
+    }
+
+    /**
+     * Streams the reply into a live-updating assistant message bubble (added empty,
+     * then grown chunk by chunk as the model/provider emits text), boundary-checks
+     * and persists the final text once the stream completes, and returns it.
+     */
+    private suspend fun streamReply(
+        sessionId: String,
+        conversation: List<Message>,
+        modality: TherapyModality
+    ): String {
+        val assistantId = "a-${System.nanoTime()}"
+        _uiState.update {
+            it.copy(messages = it.messages + Message(id = assistantId, role = Role.ASSISTANT, content = "", modality = modality.name))
+        }
+
+        val accumulated = StringBuilder()
+        produceReply(conversation).collect { delta ->
+            accumulated.append(delta)
+            _uiState.update { state ->
+                state.copy(messages = state.messages.map { if (it.id == assistantId) it.copy(content = accumulated.toString()) else it })
+            }
+        }
+
+        val rawReply = accumulated.toString()
+        val finalReply = if (safety.detectBoundaryViolation(rawReply)) BOUNDARY_FALLBACK_MESSAGE else rawReply
+        _uiState.update { state ->
+            state.copy(messages = state.messages.map { if (it.id == assistantId) it.copy(content = finalReply) else it })
+        }
+        sessionRepository.appendMessage(
+            sessionId,
+            Message(id = assistantId, role = Role.ASSISTANT, content = finalReply, modality = modality.name)
+        )
+        return finalReply
     }
 
     /** Shows a gentle check-in if the most recent prior session ended on a crisis message. */
@@ -160,15 +183,12 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private suspend fun produceReply(conversation: List<Message>): String {
-        if (!modelSettings.useLocalModel.value) return chatService.send(conversation)
-        val id = modelSettings.localModelId.value ?: return chatService.send(conversation)
-        val model = GGUFModelCatalog.byId(id) ?: return chatService.send(conversation)
-        if (!ensureLocalModel(model)) return chatService.send(conversation)
-        return runCatching { localLLMService.generate(conversation) }
-            .getOrNull()
-            ?.takeIf { it.isNotBlank() }
-            ?: chatService.send(conversation)
+    private suspend fun produceReply(conversation: List<Message>): Flow<String> {
+        if (!modelSettings.useLocalModel.value) return chatService.sendStreaming(conversation)
+        val id = modelSettings.localModelId.value ?: return chatService.sendStreaming(conversation)
+        val model = GGUFModelCatalog.byId(id) ?: return chatService.sendStreaming(conversation)
+        if (!ensureLocalModel(model)) return chatService.sendStreaming(conversation)
+        return localLLMService.stream(conversation)
     }
 
     private suspend fun ensureLocalModel(model: LocalModel): Boolean {

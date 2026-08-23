@@ -78,7 +78,7 @@ class ChatScreenTest {
     }
 
     private class FakeChatService(private val reply: String = "reflection: hi there") : ChatService {
-        override suspend fun send(messages: List<Message>): String = reply
+        override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flowOf(reply)
     }
 
     private class FakeGraphRepository : GraphRepository {
@@ -121,7 +121,6 @@ class ChatScreenTest {
     private class FakeLocalLLMService : LocalLLMService {
         override suspend fun isModelLoaded() = false
         override suspend fun load(model: LocalModel, path: String) {}
-        override suspend fun generate(messages: List<Message>) = "local"
         override fun stream(messages: List<Message>) = emptyFlow<String>()
         override fun close() {}
     }

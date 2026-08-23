@@ -12,30 +12,35 @@ import kotlinx.serialization.json.Json
  */
 internal object ChatProtocol {
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     @Serializable
     data class ReqMessage(val role: String, val content: String)
 
     @Serializable
-    data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean = false)
+    data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean = true)
 
     @Serializable
-    data class RespMessage(val role: String, val content: String)
+    data class StreamDelta(val content: String? = null)
 
     @Serializable
-    data class Choice(val message: RespMessage, val index: Int = 0, val finish_reason: String? = null)
+    data class StreamChoice(val delta: StreamDelta = StreamDelta())
 
     @Serializable
-    data class ChatResponse(val id: String? = null, val choices: List<Choice> = emptyList())
+    data class StreamChunk(val choices: List<StreamChoice> = emptyList())
 
     fun buildRequest(messages: List<Message>, model: String): ChatRequest =
         ChatRequest(
             model = model,
-            messages = messages.map { ReqMessage(it.role.name.lowercase(), it.content) },
-            stream = false
+            messages = messages.map { ReqMessage(it.role.name.lowercase(), it.content) }
         )
 
-    fun parseResponse(json: String): String {
-        val parsed = Json { ignoreUnknownKeys = true }.decodeFromString<ChatResponse>(json)
-        return parsed.choices.firstOrNull()?.message?.content ?: ""
-    }
+    /** The incremental text (if any) carried by one `data:` payload of a streaming response. */
+    fun parseStreamDelta(payload: String): String? =
+        runCatching { json.decodeFromString<StreamChunk>(payload) }
+            .getOrNull()
+            ?.choices
+            ?.firstOrNull()
+            ?.delta
+            ?.content
 }

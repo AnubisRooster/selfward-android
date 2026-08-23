@@ -32,13 +32,20 @@ class AnthropicProtocolTest {
     }
 
     @Test
-    fun parseResponseExtractsTextBlock() {
-        val json = """{"content":[{"type":"text","text":"Hi there"}]}"""
-        assertEquals("Hi there", AnthropicProtocol.parseResponse(json))
+    fun parseStreamDeltaExtractsTextFromContentBlockDelta() {
+        val json = """{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hi there"}}"""
+        assertEquals("Hi there", AnthropicProtocol.parseStreamDelta(json))
     }
 
     @Test
-    fun parseResponseReturnsEmptyWhenNoTextBlock() {
-        assertEquals("", AnthropicProtocol.parseResponse("""{"content":[]}"""))
+    fun parseStreamDeltaReturnsNullForOtherEventTypes() {
+        val json = """{"type":"message_start","message":{"id":"msg_1"}}"""
+        assertNull(AnthropicProtocol.parseStreamDelta(json))
+    }
+
+    @Test
+    fun parseStreamDeltaReturnsNullWhenDeltaMissing() {
+        val json = """{"type":"content_block_delta"}"""
+        assertNull(AnthropicProtocol.parseStreamDelta(json))
     }
 }

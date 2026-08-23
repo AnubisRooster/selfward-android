@@ -34,12 +34,6 @@ class LlamaCppLocalService : LocalLLMService {
         model = LlamaModel.load(path, config)
     }
 
-    override suspend fun generate(messages: List<Message>): String {
-        val m = checkLoaded()
-        val prompt = m.applyChatTemplate(messagesToJson(messages), true)
-        return m.generate(prompt)
-    }
-
     override fun stream(messages: List<Message>): Flow<String> {
         val m = model ?: return emptyFlow()
         val prompt = m.applyChatTemplate(messagesToJson(messages), true)
@@ -50,9 +44,6 @@ class LlamaCppLocalService : LocalLLMService {
         model?.close()
         model = null
     }
-
-    private fun checkLoaded(): LlamaModel =
-        model ?: throw IllegalStateException("Local model is not loaded")
 
     private fun messagesToJson(messages: List<Message>): String {
         val sb = StringBuilder()

@@ -15,7 +15,7 @@ class ChatProtocolTest {
         )
         val req = ChatProtocol.buildRequest(messages, "openai/gpt-4o")
         assertEquals("openai/gpt-4o", req.model)
-        assertFalse(req.stream)
+        assertTrue(req.stream)
         assertEquals(2, req.messages.size)
         assertEquals("system", req.messages[0].role)
         assertEquals("sys", req.messages[0].content)
@@ -23,19 +23,25 @@ class ChatProtocolTest {
     }
 
     @Test
-    fun parseResponseExtractsContent() {
-        val json = """{"choices":[{"message":{"role":"assistant","content":"Hi there"}}]}"""
-        assertEquals("Hi there", ChatProtocol.parseResponse(json))
+    fun parseStreamDeltaExtractsContent() {
+        val json = """{"choices":[{"delta":{"content":"Hi"}}]}"""
+        assertEquals("Hi", ChatProtocol.parseStreamDelta(json))
     }
 
     @Test
-    fun parseResponseReturnsEmptyWhenNoChoices() {
-        assertEquals("", ChatProtocol.parseResponse("""{"choices":[]}"""))
+    fun parseStreamDeltaReturnsNullWhenNoChoices() {
+        assertNull(ChatProtocol.parseStreamDelta("""{"choices":[]}"""))
     }
 
     @Test
-    fun parseResponseIgnoresUnknownFields() {
-        val json = """{"id":"chatcmpl-1","object":"chat.completion","choices":[{"index":0,"message":{"role":"assistant","content":"ok"},"finish_reason":"stop"}]}"""
-        assertEquals("ok", ChatProtocol.parseResponse(json))
+    fun parseStreamDeltaReturnsNullWhenDeltaHasNoContent() {
+        val json = """{"choices":[{"delta":{}}]}"""
+        assertNull(ChatProtocol.parseStreamDelta(json))
+    }
+
+    @Test
+    fun parseStreamDeltaIgnoresUnknownFields() {
+        val json = """{"id":"chatcmpl-1","object":"chat.completion.chunk","choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":null}]}"""
+        assertEquals("ok", ChatProtocol.parseStreamDelta(json))
     }
 }

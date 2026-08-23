@@ -76,20 +76,22 @@ class ChatViewModelTest {
 
     private class FakeChatService(private val replyPrefix: String = "reflection: ") : ChatService {
         var lastMessages: List<Message>? = null
-        override suspend fun send(messages: List<Message>): String {
+        override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flow {
             lastMessages = messages
-            return "$replyPrefix${messages.last().content}"
+            emit("$replyPrefix${messages.last().content}")
         }
     }
 
     private class FailingChatService : ChatService {
-        override suspend fun send(messages: List<Message>): String =
+        override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flow<String> {
             throw RuntimeException("network unreachable")
+        }
     }
 
     private class MissingKeyChatService : ChatService {
-        override suspend fun send(messages: List<Message>): String =
+        override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flow<String> {
             throw com.theraipist.core.chat.MissingApiKeyException()
+        }
     }
 
     private class FakeTtsService : TtsService {
@@ -108,7 +110,6 @@ class ChatViewModelTest {
     private class FakeLocalLLMService : LocalLLMService {
         override suspend fun isModelLoaded(): Boolean = false
         override suspend fun load(model: com.theraipist.core.local.LocalModel, path: String) {}
-        override suspend fun generate(messages: List<com.theraipist.core.model.Message>): String = "local"
         override fun stream(messages: List<com.theraipist.core.model.Message>) =
             kotlinx.coroutines.flow.emptyFlow<String>()
         override fun close() {}

@@ -34,6 +34,7 @@ class SettingsViewModel @Inject constructor(
 
     val useLocalModel = modelSettings.useLocalModel
     val localModelId = modelSettings.localModelId
+    val useLocalTts = modelSettings.useLocalTts
 
     private val _downloadStatus = MutableStateFlow<Map<String, DownloadStatus>>(emptyMap())
     val downloadStatus = _downloadStatus.asStateFlow()
@@ -58,6 +59,7 @@ class SettingsViewModel @Inject constructor(
     fun setModel(model: String) { this.model.value = model }
     fun setUseLocalModel(use: Boolean) = modelSettings.setUseLocalModel(use)
     fun setLocalModelId(id: String) = modelSettings.setLocalModelId(id)
+    fun setUseLocalTts(use: Boolean) = modelSettings.setUseLocalTts(use)
 
     fun save() {
         secureSettings.save(provider.value, apiKey.value, model.value)

@@ -60,10 +60,21 @@ a content-rating questionnaire answer noting therapeutic crisis-support messagin
   unless SQLCipher (or equivalent) is actually added.
 - No data shared with third parties beyond the user-selected AI provider.
 
-## Assets still needed
-- Feature graphic (1024×500), icon (512×512), at least 2 phone screenshots
-  (Chat, Persona, Graph, Settings, About).
-- Privacy policy URL (host PRIVACY.md or a static page).
+## Assets
+
+Ready, in `store/assets/`:
+- `play-icon-512.png` — 512×512 store icon, matches the in-app launcher icon.
+- `feature-graphic-1024x500.png` — feature graphic.
+- `site-banner-1600x500.png` — text-free banner for the marketing site header.
+
+Still needed:
+- **At least 2 phone screenshots** (Chat, Graph, Settings, About). These have to
+  come off a real device or emulator — they cannot be generated.
+- **Privacy policy URL** — the policy is published on the marketing site; paste
+  that URL into the Play Console once the site is live.
+
+The app icon is an adaptive icon (`ic_launcher_foreground` / `_background` /
+`_monochrome`); the monochrome layer supports Android 13+ themed icons.
 
 ## Release signing setup (do this yourself — nobody else should ever hold this keystore)
 

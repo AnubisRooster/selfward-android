@@ -19,6 +19,7 @@ import com.theraipist.core.model.Message
 import com.theraipist.core.model.Persona
 import com.theraipist.core.model.Role
 import com.theraipist.core.modality.ModalityRouter
+import com.theraipist.core.modality.TherapyModality
 import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.safety.SafetyGuardrails
@@ -106,7 +107,7 @@ class ChatViewModel @Inject constructor(
         }
         val sid = sessionId!!
         val persona: Persona = personaHolder.persona.value
-        val modality = modalityRouter.select(trimmed)
+        val modality = _uiState.value.selectedModality ?: modalityRouter.select(trimmed)
         val crisis = safety.detectCrisis(trimmed)
         if (crisis != null) {
             _uiState.update {
@@ -221,5 +222,10 @@ class ChatViewModel @Inject constructor(
 
     fun clearReEntry() {
         _uiState.update { it.copy(reEntryMessage = null) }
+    }
+
+    /** Overrides auto-detection for the next message; pass null to resume auto-detecting. */
+    fun selectModality(modality: TherapyModality?) {
+        _uiState.update { it.copy(selectedModality = modality) }
     }
 }

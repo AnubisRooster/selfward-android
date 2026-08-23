@@ -22,6 +22,7 @@ import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.safety.SafetyGuardrails
+import com.theraipist.core.voice.LocalTtsService
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsService
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,6 +49,7 @@ class ChatViewModel @Inject constructor(
     private val personaHolder: PersonaHolder,
     private val graphHolder: GraphHolder,
     private val ttsService: TtsService,
+    private val localTtsService: LocalTtsService,
     private val modelSettings: ModelSettings,
     private val localLLMService: LocalLLMService,
     private val modelDownloader: ModelDownloader,
@@ -179,6 +181,10 @@ class ChatViewModel @Inject constructor(
     }
 
     private fun speak(text: String) {
+        if (modelSettings.useLocalTts.value) {
+            runCatching { localTtsService.speak(text) }
+            return
+        }
         viewModelScope.launch {
             runCatching {
                 val audio = ttsService.synthesize(TtsRequest(input = text))

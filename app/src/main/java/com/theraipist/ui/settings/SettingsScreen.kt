@@ -37,6 +37,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val localModelId by viewModel.localModelId.collectAsState()
     val downloadStatus by viewModel.downloadStatus.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
+    val useLocalTts by viewModel.useLocalTts.collectAsState()
 
     LazyColumn(
         Modifier.fillMaxSize().padding(16.dp),
@@ -120,6 +121,25 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                     }
                 }
             }
+        }
+        item {
+            Text("Voice", style = MaterialTheme.typography.titleSmall)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Text(
+                    "Read replies aloud on-device",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                Switch(checked = useLocalTts, onCheckedChange = viewModel::setUseLocalTts)
+            }
+            Text(
+                if (useLocalTts) {
+                    "Uses your device's built-in text-to-speech. Works offline, no audio leaves your phone."
+                } else {
+                    "Uses the cloud provider's voice (requires an API key and network)."
+                },
+                style = MaterialTheme.typography.bodySmall
+            )
         }
         item {
             Button(onClick = { viewModel.save() }) { Text("Save") }

@@ -11,6 +11,7 @@ import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.safety.SafetyGuardrails
 import com.theraipist.core.repository.GraphRepository
 import com.theraipist.core.repository.SessionRepository
+import com.theraipist.core.voice.LocalTtsService
 import com.theraipist.core.voice.SttService
 import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.TherAIpistDatabase
@@ -19,6 +20,7 @@ import com.theraipist.data.local.llm.LlamaCppLocalService
 import com.theraipist.data.repository.RoomGraphRepository
 import com.theraipist.data.repository.RoomSessionRepository
 import com.theraipist.data.settings.SecureSettings
+import com.theraipist.data.voice.AndroidTtsService
 import com.theraipist.data.voice.CloudSttService
 import com.theraipist.data.voice.CloudTtsService
 import dagger.Module
@@ -57,6 +59,11 @@ object DataModule {
     @Singleton
     fun provideModelDownloader(@ApplicationContext context: Context): ModelDownloader =
         AndroidModelDownloader(context)
+
+    @Provides
+    @Singleton
+    fun provideLocalTtsService(@ApplicationContext context: Context): LocalTtsService =
+        AndroidTtsService(context)
 
     @Provides
     @Singleton

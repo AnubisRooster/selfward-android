@@ -48,6 +48,10 @@ class SecureSettings @Inject constructor(
         get() = prefs.getString(KEY_LOCAL_MODEL, null)
         set(value) = prefs.edit().putString(KEY_LOCAL_MODEL, value).apply()
 
+    var useLocalTts: Boolean
+        get() = prefs.getBoolean(KEY_USE_LOCAL_TTS, false)
+        set(value) = prefs.edit().putBoolean(KEY_USE_LOCAL_TTS, value).apply()
+
     fun save(provider: Provider, apiKey: String, model: String) {
         prefs.edit()
             .putString(KEY_PROVIDER, provider.name)
@@ -78,5 +82,6 @@ class SecureSettings @Inject constructor(
         private const val KEY_MODEL = "model"
         private const val KEY_USE_LOCAL = "use_local_model"
         private const val KEY_LOCAL_MODEL = "local_model_id"
+        private const val KEY_USE_LOCAL_TTS = "use_local_tts"
     }
 }

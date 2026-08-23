@@ -97,6 +97,14 @@ class ChatViewModelTest {
         override fun close() {}
     }
 
+    private class FakeLocalTtsService : com.theraipist.core.voice.LocalTtsService {
+        var spokenText: String? = null
+        override fun speak(text: String, onDone: () -> Unit) {
+            spokenText = text
+            onDone()
+        }
+    }
+
     private class FakeLocalLLMService : LocalLLMService {
         override suspend fun isModelLoaded(): Boolean = false
         override suspend fun load(model: com.theraipist.core.local.LocalModel, path: String) {}
@@ -150,6 +158,7 @@ class ChatViewModelTest {
             PersonaHolder(),
             GraphHolder(FakeGraphRepository()),
             FakeTtsService(),
+            FakeLocalTtsService(),
             ModelSettings(SecureSettings(android.app.Application())),
             FakeLocalLLMService(),
             FakeModelDownloader(),

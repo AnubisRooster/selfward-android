@@ -20,4 +20,7 @@ interface SessionDao {
 
     @Query("UPDATE sessions SET updatedAt = :ts WHERE id = :id")
     suspend fun touch(id: String, ts: Long)
+
+    @Query("DELETE FROM sessions WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

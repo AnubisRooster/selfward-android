@@ -1,5 +1,6 @@
 package com.theraipist.ui.chat
 
+import com.theraipist.core.ActiveSessionHolder
 import com.theraipist.core.PersonaHolder
 import com.theraipist.core.GraphHolder
 import com.theraipist.core.ModelSettings
@@ -66,6 +67,11 @@ class ChatViewModelTest {
 
         override suspend fun listSessions(): List<SessionSummary> =
             sessions.map { SessionSummary(it.id, it.title, it.updatedAt) }
+
+        override suspend fun deleteSession(sessionId: String) {
+            sessions.removeAll { it.id == sessionId }
+            messagesBySession.remove(sessionId)
+        }
     }
 
     private class FakeChatService(private val replyPrefix: String = "reflection: ") : ChatService {
@@ -127,7 +133,8 @@ class ChatViewModelTest {
 
     private fun buildVm(
         chatService: ChatService = FakeChatService(),
-        repo: FakeSessionRepository = FakeSessionRepository()
+        repo: FakeSessionRepository = FakeSessionRepository(),
+        activeSessionHolder: ActiveSessionHolder = ActiveSessionHolder()
     ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
             repo,
@@ -140,7 +147,8 @@ class ChatViewModelTest {
             FakeTtsService(),
             ModelSettings(SecureSettings(android.app.Application())),
             FakeLocalLLMService(),
-            FakeModelDownloader()
+            FakeModelDownloader(),
+            activeSessionHolder
         )
         return vm to repo
     }
@@ -218,6 +226,20 @@ class ChatViewModelTest {
         val (vm2, _) = buildVm(repo = repo)
         vm2.send("hi again")
         assertTrue(!vm2.uiState.value.reEntryMessage.isNullOrBlank())
+    }
+
+    @Test
+    fun openSession_resumesPriorMessagesOnAFreshViewModel() = runTest {
+        val repo = FakeSessionRepository()
+        val (vm1, _) = buildVm(repo = repo)
+        vm1.send("first session message")
+        val sessionId = repo.listSessions().first().id
+
+        val holder = ActiveSessionHolder()
+        holder.open(sessionId)
+        val (vm2, _) = buildVm(repo = repo, activeSessionHolder = holder)
+
+        assertTrue(vm2.uiState.value.messages.any { it.content == "first session message" })
     }
 
     @Test

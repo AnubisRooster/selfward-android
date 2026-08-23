@@ -31,4 +31,9 @@ class InMemorySessionRepository : SessionRepository {
     override suspend fun listSessions(): List<SessionSummary> {
         return sessions.values.map { SessionSummary(it.id, it.title, it.updatedAt) }
     }
+
+    override suspend fun deleteSession(sessionId: String) {
+        sessions.remove(sessionId)
+        messages.remove(sessionId)
+    }
 }

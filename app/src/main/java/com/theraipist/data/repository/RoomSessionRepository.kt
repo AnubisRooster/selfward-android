@@ -33,4 +33,9 @@ class RoomSessionRepository(
 
     override suspend fun listSessions(): List<SessionSummary> =
         db.sessionDao().getAll().map { SessionSummary(it.id, it.title, it.updatedAt) }
+
+    override suspend fun deleteSession(sessionId: String) {
+        db.messageDao().deleteBySession(sessionId)
+        db.sessionDao().deleteById(sessionId)
+    }
 }

@@ -14,7 +14,6 @@ import com.theraipist.core.safety.SafetyGuardrails
 import com.theraipist.core.repository.GraphRepository
 import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.voice.LocalTtsService
-import com.theraipist.core.voice.SttService
 import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.download.AndroidModelDownloader
@@ -26,7 +25,6 @@ import com.theraipist.data.repository.RoomSessionRepository
 import com.theraipist.core.settings.SecureSettings
 import com.theraipist.data.settings.EncryptedSecureSettings
 import com.theraipist.data.voice.AndroidTtsService
-import com.theraipist.data.voice.CloudSttService
 import com.theraipist.data.voice.CloudTtsService
 import dagger.Module
 import dagger.Provides
@@ -84,11 +82,6 @@ object DataModule {
     @Singleton
     fun provideTtsService(client: HttpClient, secureSettings: SecureSettings): TtsService =
         CloudTtsService(client, secureSettings)
-
-    @Provides
-    @Singleton
-    fun provideSttService(client: HttpClient, secureSettings: SecureSettings): SttService =
-        CloudSttService(client, secureSettings)
 
     @Provides
     @Singleton

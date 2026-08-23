@@ -1,6 +1,5 @@
 package com.theraipist.data.voice
 
-import com.theraipist.core.voice.SttServiceException
 import com.theraipist.core.voice.TtsRequest
 import com.theraipist.core.voice.TtsServiceException
 import com.theraipist.data.settings.FakeSecureSettings
@@ -21,10 +20,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Drives both cloud voice services through a real Ktor client. Neither had any
- * coverage, and both previously treated an HTTP error body as valid content.
+ * Drives the cloud TTS service through a real Ktor client. It had no coverage,
+ * and previously handed the caller an HTTP error body as though it were audio.
  */
-class CloudVoiceServicesTest {
+class CloudTtsServiceTest {
 
     private fun client(engine: MockEngine) = HttpClient(engine) {
         install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
@@ -43,8 +42,6 @@ class CloudVoiceServicesTest {
     }
 
     private fun settings() = FakeSecureSettings(initialApiKey = "test-key")
-
-    // ---- TTS ----
 
     @Test
     fun ttsReturnsAudioBytesOnSuccess() = runBlocking {
@@ -90,48 +87,5 @@ class CloudVoiceServicesTest {
 
         assertTrue(error is TtsServiceException)
         assertTrue(error!!.message!!.contains("502"))
-    }
-
-    // ---- STT ----
-
-    @Test
-    fun sttReturnsTranscribedText() = runBlocking {
-        val engine = engineReturning("""{"text":"hello there"}""")
-
-        val text = CloudSttService(client(engine), settings()).transcribe(byteArrayOf(1, 2))
-
-        assertEquals("hello there", text)
-    }
-
-    /**
-     * Previously the raw body was returned when decoding failed, so an auth error
-     * was handed back as if the user had spoken the error JSON out loud.
-     */
-    @Test
-    fun sttRaisesInsteadOfReturningAnErrorBodyAsTranscript() {
-        val body = """{"error":{"message":"Incorrect API key provided"}}"""
-        val engine = engineReturning(body, status = HttpStatusCode.Unauthorized)
-        val service = CloudSttService(client(engine), settings())
-
-        val error = runCatching { runBlocking { service.transcribe(byteArrayOf(1, 2)) } }
-            .exceptionOrNull()
-
-        assertTrue("expected SttServiceException, got $error", error is SttServiceException)
-        assertTrue(error!!.message!!.contains("401"))
-    }
-
-    @Test
-    fun sttRaisesOnUndecodableSuccessBody() {
-        val engine = engineReturning("<html>gateway timeout</html>", contentType = "text/html")
-        val service = CloudSttService(client(engine), settings())
-
-        val error = runCatching { runBlocking { service.transcribe(byteArrayOf(1, 2)) } }
-            .exceptionOrNull()
-
-        assertTrue("expected SttServiceException, got $error", error is SttServiceException)
-        assertTrue(
-            "raw body leaked into the transcript",
-            !error!!.message!!.contains("<html>")
-        )
     }
 }

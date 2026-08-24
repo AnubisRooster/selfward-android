@@ -34,6 +34,8 @@ class SessionsScreenTest {
 
         override suspend fun appendMessage(sessionId: String, message: Message) {}
         override suspend fun getMessages(sessionId: String): List<Message> = emptyList()
+        override suspend fun getSession(sessionId: String): Session? = null
+
         override suspend fun listSessions(): List<SessionSummary> = sessions.toList()
         override suspend fun deleteSession(sessionId: String) {
             sessions.removeAll { it.id == sessionId }

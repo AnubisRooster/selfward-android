@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.theraipist.config.TherapyConfig
 import com.theraipist.core.chat.Provider
 import com.theraipist.core.local.DownloadProgress
 import com.theraipist.core.local.DownloadStatus
@@ -161,6 +162,35 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         }
         item {
             Button(onClick = { viewModel.save() }) { Text("Save") }
+        }
+        item { AboutSection() }
+    }
+}
+
+/**
+ * About and crisis resources, folded into Settings rather than occupying a tab
+ * of their own — iOS keeps its four tabs for Chats, Narrative, Insights and
+ * Settings, and this is reference material rather than a destination.
+ */
+@Composable
+private fun AboutSection() {
+    Column(
+        Modifier.fillMaxWidth().padding(top = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("About", style = MaterialTheme.typography.titleSmall)
+        Text(
+            "therAIpist is a private companion for self-reflection. It is not a licensed " +
+                "therapist and is not a substitute for professional mental-health care.",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        Text("Crisis resources", style = MaterialTheme.typography.titleSmall)
+        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                TherapyConfig.RESOURCE_MESSAGE,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(12.dp)
+            )
         }
     }
 }

@@ -31,6 +31,9 @@ class RoomSessionRepository(
     override suspend fun getMessages(sessionId: String): List<Message> =
         db.messageDao().getBySession(sessionId).map { it.toDomain() }
 
+    override suspend fun getSession(sessionId: String): Session? =
+        db.sessionDao().getById(sessionId)?.toDomain()
+
     override suspend fun listSessions(): List<SessionSummary> =
         db.sessionDao().getAll().map { SessionSummary(it.id, it.title, it.updatedAt) }
 

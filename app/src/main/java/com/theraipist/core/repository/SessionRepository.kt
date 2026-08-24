@@ -23,6 +23,9 @@ interface SessionRepository {
     suspend fun getMessages(sessionId: String): List<Message>
     suspend fun listSessions(): List<SessionSummary>
 
+    /** The session with [sessionId], including the persona it was started with, or null. */
+    suspend fun getSession(sessionId: String): Session?
+
     /** Deletes the session and its messages. Graph nodes/insights derived from it are kept - the knowledge graph is one continuous memory, not scoped to any single session's transcript. */
     suspend fun deleteSession(sessionId: String)
 }

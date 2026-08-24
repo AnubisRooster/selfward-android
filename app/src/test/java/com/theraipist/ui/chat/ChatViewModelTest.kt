@@ -66,6 +66,11 @@ class ChatViewModelTest {
         override suspend fun getMessages(sessionId: String): List<Message> =
             messagesBySession[sessionId]?.filter { it.role != Role.SYSTEM } ?: emptyList()
 
+        override suspend fun getSession(sessionId: String): Session? =
+
+            sessions.firstOrNull { it.id == sessionId }
+
+
         override suspend fun listSessions(): List<SessionSummary> =
             sessions.map { SessionSummary(it.id, it.title, it.updatedAt) }
 

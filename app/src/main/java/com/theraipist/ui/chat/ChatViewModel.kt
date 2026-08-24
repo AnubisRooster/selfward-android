@@ -73,6 +73,13 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var sessionId: String? = null
+
+    /**
+     * The persona the open session was started with. A session carries its own
+     * persona, as on iOS, so reopening an old conversation keeps the companion
+     * it was held with rather than adopting whatever was last selected.
+     */
+    private var sessionPersona: Persona? = null
     private var loadedModelId: String? = null
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState = _uiState.asStateFlow()
@@ -91,6 +98,7 @@ class ChatViewModel @Inject constructor(
     private fun openSession(id: String) {
         sessionId = id
         viewModelScope.launch {
+            sessionPersona = sessionRepository.getSession(id)?.persona
             val messages = sessionRepository.getMessages(id)
             _uiState.update { it.copy(messages = messages) }
         }
@@ -118,10 +126,12 @@ class ChatViewModel @Inject constructor(
     private suspend fun doSend(trimmed: String) {
         if (sessionId == null) {
             checkReEntry()
-            sessionId = sessionRepository.createSession(personaHolder.persona.value).id
+            val created = sessionRepository.createSession(personaHolder.persona.value)
+            sessionId = created.id
+            sessionPersona = created.persona
         }
         val sid = sessionId!!
-        val persona: Persona = personaHolder.persona.value
+        val persona: Persona = sessionPersona ?: personaHolder.persona.value
         val modality = _uiState.value.selectedModality ?: modalityRouter.select(trimmed)
         val crisis = safety.detectCrisis(trimmed)
         if (crisis != null) {

@@ -17,6 +17,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.theraipist.ui.chat.ChatScreen
 import com.theraipist.ui.graph.GraphScreen
+import com.theraipist.ui.journal.JournalScreen
 import com.theraipist.ui.newsession.NewSessionScreen
 import com.theraipist.ui.sessions.SessionsScreen
 import com.theraipist.ui.settings.SettingsScreen
@@ -33,6 +34,7 @@ private data class Tab(val route: String, val label: String)
 
 private val TABS = listOf(
     Tab("chats", "Chats"),
+    Tab("journal", "Journal"),
     Tab("insights", "Insights"),
     Tab("settings", "Settings")
 )
@@ -90,6 +92,7 @@ fun MainScreen() {
                     onOpenSettings = { switchTo("settings") }
                 )
             }
+            composable("journal") { JournalScreen() }
             composable("insights") { GraphScreen() }
             composable("settings") { SettingsScreen() }
         }

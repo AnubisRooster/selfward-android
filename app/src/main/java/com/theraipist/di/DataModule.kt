@@ -8,6 +8,12 @@ import com.theraipist.core.embedding.EmbeddingModelDownloader
 import com.theraipist.core.embedding.EmbeddingProviderFactory
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.local.ModelDownloader
+import com.theraipist.core.lock.LockoutStore
+import com.theraipist.core.lock.PinLockout
+import com.theraipist.core.lock.PinService
+import com.theraipist.core.lock.PinStore
+import com.theraipist.data.lock.EncryptedPinStore
+import com.theraipist.data.lock.PrefsLockoutStore
 import com.theraipist.core.modality.ModalityRouter
 import com.theraipist.core.prompt.TherapyPromptBuilder
 import com.theraipist.core.safety.SafetyGuardrails
@@ -82,6 +88,21 @@ object DataModule {
     @Singleton
     fun provideTtsService(client: HttpClient, secureSettings: SecureSettings): TtsService =
         CloudTtsService(client, secureSettings)
+
+    @Provides
+    @Singleton
+    fun providePinStore(@ApplicationContext context: Context): PinStore =
+        EncryptedPinStore(context)
+
+    @Provides
+    @Singleton
+    fun provideLockoutStore(@ApplicationContext context: Context): LockoutStore =
+        PrefsLockoutStore(context)
+
+    @Provides
+    @Singleton
+    fun providePinService(pinStore: PinStore, lockoutStore: LockoutStore): PinService =
+        PinService(pinStore, PinLockout(lockoutStore))
 
     @Provides
     @Singleton

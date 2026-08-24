@@ -27,6 +27,20 @@ Your **API keys** are handled differently: they are stored in Android's
 `EncryptedSharedPreferences`, backed by the Android Keystore, separately from
 conversation data.
 
+## The PIN lock
+
+You can set a six-digit PIN that is asked for each time the app starts. Repeated
+wrong entries lock the keypad for progressively longer.
+
+**The PIN is a privacy curtain, not encryption.** It keeps your sessions off the
+screen if someone else picks up your unlocked phone. It does **not** encrypt the
+database, and it will not stop someone who has your unlocked device and developer
+tools from reading what is stored. Please don't rely on it as protection against
+a determined person with access to your phone.
+
+The PIN itself is held in Keystore-backed storage on the device, is never
+transmitted, and is not included in backups.
+
 ## When your data leaves your device
 
 **If you use a cloud provider**, the messages in your conversation — including

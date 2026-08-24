@@ -14,5 +14,6 @@ data class SessionEntity(
     val spiritualTradition: String?,
     val title: String,
     val createdAt: Long,
-    val updatedAt: Long
+    val updatedAt: Long,
+    val isArchived: Boolean = false
 )

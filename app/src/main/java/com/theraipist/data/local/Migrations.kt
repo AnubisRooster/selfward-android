@@ -63,3 +63,13 @@ val MIGRATION_2_3 = object : Migration(2, 3) {
         )
     }
 }
+
+/**
+ * Adds archiving. Existing sessions default to not archived, so an upgrade
+ * leaves every conversation exactly where its owner left it.
+ */
+val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `sessions` ADD COLUMN `isArchived` INTEGER NOT NULL DEFAULT 0")
+    }
+}

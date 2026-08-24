@@ -20,6 +20,12 @@ class SessionsViewModel @Inject constructor(
     private val _sessions = MutableStateFlow<List<SessionSummary>>(emptyList())
     val sessions = _sessions.asStateFlow()
 
+    private val _archived = MutableStateFlow<List<SessionSummary>>(emptyList())
+    val archived = _archived.asStateFlow()
+
+    private val _showingArchive = MutableStateFlow(false)
+    val showingArchive = _showingArchive.asStateFlow()
+
     init {
         refresh()
     }
@@ -27,6 +33,7 @@ class SessionsViewModel @Inject constructor(
     fun refresh() {
         viewModelScope.launch {
             _sessions.value = sessionRepository.listSessions()
+            _archived.value = sessionRepository.listArchivedSessions()
         }
     }
 
@@ -35,6 +42,26 @@ class SessionsViewModel @Inject constructor(
         activeSessionHolder.open(sessionId)
     }
 
+    fun showArchive(showing: Boolean) {
+        _showingArchive.value = showing
+    }
+
+    /**
+     * Archiving is the everyday action; it hides the session without touching
+     * its transcript, memories or graph, and can be undone from the archive.
+     */
+    fun archiveSession(sessionId: String) = setArchived(sessionId, true)
+
+    fun restoreSession(sessionId: String) = setArchived(sessionId, false)
+
+    private fun setArchived(sessionId: String, archived: Boolean) {
+        viewModelScope.launch {
+            sessionRepository.setArchived(sessionId, archived)
+            refresh()
+        }
+    }
+
+    /** Irreversible, and only offered from the archive. */
     fun deleteSession(sessionId: String) {
         viewModelScope.launch {
             sessionRepository.deleteSession(sessionId)

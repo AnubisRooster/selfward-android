@@ -20,6 +20,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -160,6 +161,13 @@ private fun GraphCanvas(
     if (nodes.isEmpty()) return
     val shown = nodes.sortedByDescending { it.strength }.take(MAX_DRAWN)
     val shownIds = shown.map { it.id }.toSet()
+
+    // Read from the theme out here: the canvas draw scope is not composable, and
+    // the labels used to be painted with a hardcoded black that vanished
+    // completely against a dark background.
+    val labelColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val edgeColor = MaterialTheme.colorScheme.outline
+
     Canvas(Modifier.fillMaxWidth().height(260.dp).padding(8.dp)) {
         val cx = size.width / 2
         val cy = size.height / 2
@@ -176,7 +184,7 @@ private fun GraphCanvas(
             if (e.sourceId !in shownIds || e.targetId !in shownIds) return@forEach
             val s = positions[e.sourceId] ?: return@forEach
             val t = positions[e.targetId] ?: return@forEach
-            drawLine(Color.Gray, s, t, strokeWidth = ((e.weight ?: 1f) * 1.5f).dp.toPx())
+            drawLine(edgeColor, s, t, strokeWidth = ((e.weight ?: 1f) * 1.5f).dp.toPx())
         }
         shown.forEach { node ->
             val p = positions[node.id] ?: return@forEach
@@ -184,7 +192,7 @@ private fun GraphCanvas(
         }
 
         val paint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
+            color = labelColor
             textSize = 26f
             isAntiAlias = true
         }

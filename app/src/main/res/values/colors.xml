@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mirrors LightBackground in ui/theme/Color.kt. Used for the window
+         behind Compose so the launch frame matches the first drawn frame
+         instead of flashing white. -->
+    <color name="window_background">#FDFBFF</color>
+</resources>

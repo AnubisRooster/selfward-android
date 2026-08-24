@@ -4,8 +4,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -31,6 +33,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.selfward.config.TherapyConfig
+import com.selfward.core.safety.SafetyGuardrails
 import com.selfward.core.chat.Provider
 import com.selfward.core.local.DownloadProgress
 import com.selfward.core.local.DownloadStatus
@@ -61,6 +64,10 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            // Four of the six screens carried a headline and this did not, so it
+            // opened cold on a section label.
+            Text("Settings", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(12.dp))
             Text("Provider", style = MaterialTheme.typography.titleSmall)
             SelectionChips(
                 options = Provider.entries,
@@ -121,9 +128,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                         )
                         Column(Modifier.weight(1f)) {
                             Text(m.name, style = MaterialTheme.typography.bodyLarge)
+                            // RAM first: the catalogue is ordered by it, and it is
+                            // what decides whether the model will run at all.
+                            // Leading with download size made the list look unsorted.
                             val sizeGb = "%.1f".format(m.sizeBytes / 1_000_000_000.0)
                             Text(
-                                "$sizeGb GB · min ${(m.minRamBytes / 1_000_000_000L)} GB RAM",
+                                "Needs ${(m.minRamBytes / 1_000_000_000L)} GB RAM · $sizeGb GB download",
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -210,7 +220,7 @@ private fun AboutSection() {
         Text("Crisis resources", style = MaterialTheme.typography.titleSmall)
         Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
             Text(
-                TherapyConfig.RESOURCE_MESSAGE,
+                SafetyGuardrails.resourceMessage(),
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(12.dp)
             )

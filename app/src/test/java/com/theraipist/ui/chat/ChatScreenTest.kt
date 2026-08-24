@@ -81,6 +81,14 @@ class ChatScreenTest {
         override fun sendStreaming(messages: List<Message>) = kotlinx.coroutines.flow.flowOf(reply)
     }
 
+    private class FakeIntakeStore(private var intake: com.theraipist.core.intake.Intake = com.theraipist.core.intake.Intake()) :
+        com.theraipist.core.intake.IntakeStore {
+        override fun load() = intake
+        override fun save(intake: com.theraipist.core.intake.Intake) { this.intake = intake }
+        override fun clear() { intake = com.theraipist.core.intake.Intake() }
+        override var onboardingComplete: Boolean = true
+    }
+
     private class FakeGraphRepository : GraphRepository {
         override suspend fun saveNode(sessionId: String, node: GraphNode) {}
         override suspend fun saveEdge(sessionId: String, edge: GraphEdge) {}
@@ -149,7 +157,8 @@ class ChatScreenTest {
         ModelSettings(FakeSecureSettings()),
         FakeLocalLLMService(),
         FakeModelDownloader(),
-        ActiveSessionHolder()
+        ActiveSessionHolder(),
+        FakeIntakeStore()
     )
 
     @Test

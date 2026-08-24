@@ -5,21 +5,23 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.theraipist.ui.lock.PinScreen
+import com.theraipist.ui.onboarding.OnboardingScreen
 
 /**
- * Root routing, mirroring the iOS `AppRootView`: the PIN gate stands in front of
- * the tabbed app, and unlocking is per-launch rather than remembered.
- *
- * Onboarding will slot in ahead of the gate in a following change.
+ * Root routing, mirroring the iOS `AppRootView`: first launch runs onboarding,
+ * then the PIN gate stands in front of the tabbed app. Unlocking is per-launch
+ * rather than remembered.
  */
 @Composable
-fun AppRoot() {
+fun AppRoot(viewModel: AppRootViewModel = hiltViewModel()) {
+    var onboarded by remember { mutableStateOf(viewModel.onboardingComplete) }
     var unlocked by remember { mutableStateOf(false) }
 
-    if (unlocked) {
-        MainScreen()
-    } else {
-        PinScreen(onUnlocked = { unlocked = true })
+    when {
+        !onboarded -> OnboardingScreen(onFinished = { onboarded = true })
+        !unlocked -> PinScreen(onUnlocked = { unlocked = true })
+        else -> MainScreen()
     }
 }

@@ -11,6 +11,8 @@ import com.theraipist.core.chat.ChatService
 import com.theraipist.core.chat.ChatServiceException
 import com.theraipist.core.chat.MissingApiKeyException
 import com.theraipist.core.graph.InsightExtractor
+import com.theraipist.core.intake.IntakeContext
+import com.theraipist.core.intake.IntakeStore
 import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
 import com.theraipist.core.local.LocalLLMService
@@ -66,7 +68,8 @@ class ChatViewModel @Inject constructor(
     private val modelSettings: ModelSettings,
     private val localLLMService: LocalLLMService,
     private val modelDownloader: ModelDownloader,
-    private val activeSessionHolder: ActiveSessionHolder
+    private val activeSessionHolder: ActiveSessionHolder,
+    private val intakeStore: IntakeStore
 ) : ViewModel() {
 
     private var sessionId: String? = null
@@ -137,8 +140,20 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(messages = it.messages + userMessage) }
 
         val promptKey = modalityRouter.promptKey(modality)
-        val conversation = promptBuilder.buildConversation(persona, promptKey, history, trimmed)
-        val reply = streamReply(sid, conversation, modality)
+        // Resolved up front because it decides whether the intake block may be
+        // included at all: it is only ever shown to a model running on-device.
+        val localModel = resolveUsableLocalModel()
+        val cloudConversation = promptBuilder.buildConversation(persona, promptKey, history, trimmed)
+        val conversation = if (localModel == null) {
+            cloudConversation
+        } else {
+            promptBuilder.buildConversation(
+                persona, promptKey, history, trimmed,
+                intakeContext = IntakeContext.block(intakeStore.load())
+            )
+        }
+
+        val reply = streamReply(sid, conversation, cloudConversation, localModel, modality)
         val insights = InsightExtractor.extract(reply)
         runCatching { graphHolder.addInsights(sid, insights) }
         _uiState.update { it.copy(graphNodes = graphHolder.nodes.value) }
@@ -158,6 +173,8 @@ class ChatViewModel @Inject constructor(
     private suspend fun streamReply(
         sessionId: String,
         conversation: List<Message>,
+        cloudConversation: List<Message>,
+        localModel: LocalModel?,
         modality: TherapyModality
     ): String {
         val assistantId = "a-${System.nanoTime()}"
@@ -170,7 +187,7 @@ class ChatViewModel @Inject constructor(
 
         val accumulated = StringBuilder()
         try {
-            produceReply(conversation)
+            produceReply(conversation, cloudConversation, localModel)
                 .takeWhile { delta ->
                     accumulated.append(delta)
                     !safety.detectBoundaryViolation(accumulated.toString())
@@ -237,12 +254,21 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    private suspend fun produceReply(conversation: List<Message>): Flow<String> {
-        if (!modelSettings.useLocalModel.value) return chatService.sendStreaming(conversation)
-        val id = modelSettings.localModelId.value ?: return chatService.sendStreaming(conversation)
-        val model = GGUFModelCatalog.byId(id) ?: return chatService.sendStreaming(conversation)
-        if (!ensureLocalModel(model)) return chatService.sendStreaming(conversation)
-        return localWithCloudFallback(conversation)
+    /** The on-device model to use for this turn, or null when the cloud will answer. */
+    private suspend fun resolveUsableLocalModel(): LocalModel? {
+        if (!modelSettings.useLocalModel.value) return null
+        val id = modelSettings.localModelId.value ?: return null
+        val model = GGUFModelCatalog.byId(id) ?: return null
+        return if (ensureLocalModel(model)) model else null
+    }
+
+    private fun produceReply(
+        conversation: List<Message>,
+        cloudConversation: List<Message>,
+        localModel: LocalModel?
+    ): Flow<String> {
+        if (localModel == null) return chatService.sendStreaming(cloudConversation)
+        return localWithCloudFallback(conversation, cloudConversation)
     }
 
     /**
@@ -251,8 +277,14 @@ class ChatViewModel @Inject constructor(
      * and a silent empty reply is indistinguishable from a broken model. Once any
      * text has been emitted the fallback is off the table: switching sources
      * mid-sentence would splice two different replies together.
+     *
+     * The fallback deliberately sends [cloudConversation], not the local one: the
+     * local prompt carries the intake block, and that must never reach a provider.
      */
-    private fun localWithCloudFallback(conversation: List<Message>): Flow<String> = flow {
+    private fun localWithCloudFallback(
+        conversation: List<Message>,
+        cloudConversation: List<Message>
+    ): Flow<String> = flow {
         var emitted = false
         try {
             localLLMService.stream(conversation).collect { delta ->
@@ -264,7 +296,7 @@ class ChatViewModel @Inject constructor(
         } catch (e: Exception) {
             if (emitted) throw e
         }
-        if (!emitted) emitAll(chatService.sendStreaming(conversation))
+        if (!emitted) emitAll(chatService.sendStreaming(cloudConversation))
     }
 
     private suspend fun ensureLocalModel(model: LocalModel): Boolean {

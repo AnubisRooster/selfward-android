@@ -8,10 +8,12 @@ import com.theraipist.core.embedding.EmbeddingModelDownloader
 import com.theraipist.core.embedding.EmbeddingProviderFactory
 import com.theraipist.core.local.LocalLLMService
 import com.theraipist.core.local.ModelDownloader
+import com.theraipist.core.intake.IntakeStore
 import com.theraipist.core.lock.LockoutStore
 import com.theraipist.core.lock.PinLockout
 import com.theraipist.core.lock.PinService
 import com.theraipist.core.lock.PinStore
+import com.theraipist.data.intake.EncryptedIntakeStore
 import com.theraipist.data.lock.EncryptedPinStore
 import com.theraipist.data.lock.PrefsLockoutStore
 import com.theraipist.core.modality.ModalityRouter
@@ -88,6 +90,11 @@ object DataModule {
     @Singleton
     fun provideTtsService(client: HttpClient, secureSettings: SecureSettings): TtsService =
         CloudTtsService(client, secureSettings)
+
+    @Provides
+    @Singleton
+    fun provideIntakeStore(@ApplicationContext context: Context): IntakeStore =
+        EncryptedIntakeStore(context)
 
     @Provides
     @Singleton

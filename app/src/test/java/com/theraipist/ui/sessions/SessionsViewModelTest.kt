@@ -37,6 +37,21 @@ class SessionsViewModelTest {
 
         override suspend fun listSessions(): List<SessionSummary> = sessions.toList()
 
+        private var archivedIds = setOf<String>()
+
+
+        override suspend fun listArchivedSessions(): List<SessionSummary> =
+
+            sessions.filter { it.id in archivedIds }
+
+
+        override suspend fun setArchived(sessionId: String, archived: Boolean) {
+
+            archivedIds = if (archived) archivedIds + sessionId else archivedIds - sessionId
+
+        }
+
+
         override suspend fun deleteSession(sessionId: String) {
             deletedIds += sessionId
             sessions.removeAll { it.id == sessionId }

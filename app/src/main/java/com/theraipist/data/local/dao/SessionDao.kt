@@ -15,8 +15,14 @@ interface SessionDao {
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun getById(id: String): SessionEntity?
 
-    @Query("SELECT * FROM sessions ORDER BY updatedAt DESC")
+    @Query("SELECT * FROM sessions WHERE isArchived = 0 ORDER BY updatedAt DESC")
     suspend fun getAll(): List<SessionEntity>
+
+    @Query("SELECT * FROM sessions WHERE isArchived = 1 ORDER BY updatedAt DESC")
+    suspend fun getArchived(): List<SessionEntity>
+
+    @Query("UPDATE sessions SET isArchived = :archived, updatedAt = :ts WHERE id = :id")
+    suspend fun setArchived(id: String, archived: Boolean, ts: Long)
 
     @Query("UPDATE sessions SET updatedAt = :ts WHERE id = :id")
     suspend fun touch(id: String, ts: Long)

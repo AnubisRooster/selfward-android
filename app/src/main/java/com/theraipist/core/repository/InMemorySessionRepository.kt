@@ -7,6 +7,7 @@ class InMemorySessionRepository : SessionRepository {
 
     private val sessions = LinkedHashMap<String, Session>()
     private val messages = LinkedHashMap<String, MutableList<Message>>()
+    private var archived = setOf<String>()
 
     override suspend fun createSession(persona: Persona, title: String): Session {
         val now = System.currentTimeMillis()
@@ -30,12 +31,21 @@ class InMemorySessionRepository : SessionRepository {
 
     override suspend fun getSession(sessionId: String): Session? = sessions[sessionId]
 
-    override suspend fun listSessions(): List<SessionSummary> {
-        return sessions.values.map { SessionSummary(it.id, it.title, it.updatedAt) }
+    override suspend fun listSessions(): List<SessionSummary> =
+        sessions.values.filterNot { it.id in archived }
+            .map { SessionSummary(it.id, it.title, it.updatedAt) }
+
+    override suspend fun listArchivedSessions(): List<SessionSummary> =
+        sessions.values.filter { it.id in archived }
+            .map { SessionSummary(it.id, it.title, it.updatedAt) }
+
+    override suspend fun setArchived(sessionId: String, archived: Boolean) {
+        if (archived) this.archived += sessionId else this.archived -= sessionId
     }
 
     override suspend fun deleteSession(sessionId: String) {
         sessions.remove(sessionId)
         messages.remove(sessionId)
+        archived -= sessionId
     }
 }

@@ -1,7 +1,10 @@
 package com.theraipist.ui.sessions
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.theraipist.core.ActiveSessionHolder
@@ -36,7 +39,18 @@ class SessionsScreenTest {
         override suspend fun getMessages(sessionId: String): List<Message> = emptyList()
         override suspend fun getSession(sessionId: String): Session? = null
 
-        override suspend fun listSessions(): List<SessionSummary> = sessions.toList()
+        private var archivedIds = setOf<String>()
+
+        override suspend fun listSessions(): List<SessionSummary> =
+            sessions.filterNot { it.id in archivedIds }
+
+        override suspend fun listArchivedSessions(): List<SessionSummary> =
+            sessions.filter { it.id in archivedIds }
+
+        override suspend fun setArchived(sessionId: String, archived: Boolean) {
+            archivedIds = if (archived) archivedIds + sessionId else archivedIds - sessionId
+        }
+
         override suspend fun deleteSession(sessionId: String) {
             sessions.removeAll { it.id == sessionId }
         }
@@ -48,7 +62,7 @@ class SessionsScreenTest {
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
-        composeRule.onNodeWithText("No past sessions yet — start a conversation and it'll show up here.")
+        composeRule.onNodeWithText("No sessions yet — start one and it'll show up here.")
             .assertIsDisplayed()
     }
 
@@ -65,16 +79,83 @@ class SessionsScreenTest {
         assertTrue(opened)
     }
 
+    /** Archiving is the everyday action and must not destroy anything. */
     @Test
-    fun deleteRemovesSessionFromList() {
+    fun archivingHidesTheSessionWithoutDeletingIt() {
         val repo = FakeSessionRepository()
         val vm = SessionsViewModel(repo, ActiveSessionHolder())
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
-        composeRule.onNodeWithText("Delete").performClick()
-        composeRule.onNodeWithText("No past sessions yet — start a conversation and it'll show up here.")
+
+        composeRule.onNodeWithText("Archive").performClick()
+
+        composeRule.onNodeWithText("No sessions yet — start one and it'll show up here.")
             .assertIsDisplayed()
+        assertTrue("archiving must not delete the session", repo.sessions.any { it.id == "s1" })
+    }
+
+    @Test
+    fun anArchivedSessionCanBeRestored() {
+        val repo = FakeSessionRepository()
+        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onNodeWithText("Archive").performClick()
+        composeRule.onNodeWithText("Archive (1)").performClick()
+        composeRule.onNodeWithText("Restore").performClick()
+        composeRule.onNodeWithText("Done").performClick()
+
+        composeRule.onNodeWithText("First session").assertIsDisplayed()
+    }
+
+    /** Permanent deletion is only reachable from the archive, never the main list. */
+    @Test
+    fun deleteIsNotOfferedOnTheActiveList() {
+        val vm = SessionsViewModel(FakeSessionRepository(), ActiveSessionHolder())
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onAllNodesWithText("Delete").assertCountEquals(0)
+    }
+
+    @Test
+    fun deletingFromTheArchiveRemovesItForGood() {
+        val repo = FakeSessionRepository()
+        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onNodeWithText("Archive").performClick()
+        composeRule.onNodeWithText("Archive (1)").performClick()
+        composeRule.onNodeWithText("Delete").performClick()
+
+        assertTrue(repo.sessions.isEmpty())
+    }
+
+    /**
+     * The ViewModel outlives navigating away to start a session, so a list that
+     * only loaded in init would show "no sessions" straight after creating one.
+     * Found on a device; this pins it.
+     */
+    @Test
+    fun theListReloadsWhenTheScreenIsShown() {
+        val repo = FakeSessionRepository(emptyList())
+        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+
+        // A session appears after the ViewModel was constructed, as happens when
+        // one is created on another screen.
+        repo.sessions += SessionSummary("s9", "Created elsewhere", 500)
+
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onNodeWithText("Created elsewhere").assertIsDisplayed()
     }
 
     @Test

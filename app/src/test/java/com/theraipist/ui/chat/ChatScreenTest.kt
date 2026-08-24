@@ -76,6 +76,12 @@ class ChatScreenTest {
         override suspend fun listSessions(): List<SessionSummary> =
             sessions.map { SessionSummary(it.id, it.title, it.updatedAt) }
 
+        override suspend fun listArchivedSessions(): List<SessionSummary> = emptyList()
+
+
+        override suspend fun setArchived(sessionId: String, archived: Boolean) {}
+
+
         override suspend fun deleteSession(sessionId: String) {
             sessions.removeAll { it.id == sessionId }
             messagesBySession.remove(sessionId)

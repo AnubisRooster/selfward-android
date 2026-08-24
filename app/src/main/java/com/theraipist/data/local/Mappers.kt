@@ -69,14 +69,16 @@ internal fun GraphNode.toEntity(sessionId: String): GraphNodeEntity = GraphNodeE
     sessionId = sessionId,
     label = label,
     kind = kind,
-    createdAt = createdAt
+    createdAt = createdAt,
+    strength = strength
 )
 
 internal fun GraphNodeEntity.toDomain(): GraphNode = GraphNode(
     id = id,
     label = label,
     kind = kind,
-    createdAt = createdAt
+    createdAt = createdAt,
+    strength = strength
 )
 
 internal fun GraphEdge.toEntity(sessionId: String): GraphEdgeEntity = GraphEdgeEntity(

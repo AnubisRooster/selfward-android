@@ -10,5 +10,6 @@ data class GraphNodeEntity(
     val sessionId: String,
     val label: String,
     val kind: String?,
-    val createdAt: Long
+    val createdAt: Long,
+    val strength: Float = 1.0f
 )

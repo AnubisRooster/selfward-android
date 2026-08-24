@@ -79,7 +79,7 @@ class MigrationTest {
     }
 
     private fun openMigrated() = Room.databaseBuilder(context, TherAIpistDatabase::class.java, dbName)
-        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
         .build()
 
     @Test
@@ -123,6 +123,30 @@ class MigrationTest {
 
         assertEquals("the session must survive both migrations", "A hard week", session?.title)
         assertTrue("narrative starts empty", narrative == null)
+    }
+
+    /**
+     * Graph nodes stored before v5 predate strength. They must come through the
+     * upgrade readable and at the base strength, rather than the upgrade failing
+     * or inventing a weight for history the app never measured.
+     */
+    @Test
+    fun graphNodesFromBeforeStrengthSurviveAtTheBaseStrength() {
+        createVersion1Database()
+        val v1 = context.openOrCreateDatabase(dbName, Context.MODE_PRIVATE, null)
+        v1.execSQL(
+            "INSERT INTO `graph_nodes` (`id`, `sessionId`, `label`, `kind`, `createdAt`) " +
+                "VALUES ('n_1', 's1', 'Mother', 'person', 100)"
+        )
+        v1.close()
+
+        val db = openMigrated()
+        val nodes = kotlinx.coroutines.runBlocking { db.graphDao().getAllNodes() }
+        db.close()
+
+        val node = nodes.single { it.id == "n_1" }
+        assertEquals("Mother", node.label)
+        assertEquals(1.0f, node.strength, 0.001f)
     }
 
     @Test

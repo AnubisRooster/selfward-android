@@ -29,6 +29,14 @@ import com.theraipist.core.chat.Provider
 import com.theraipist.core.local.DownloadProgress
 import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.local.GGUFModelCatalog
+import com.theraipist.ui.components.SelectionChips
+
+/** Provider names as they are written by the vendors, rather than SCREAMING_CASE. */
+private fun providerLabel(provider: Provider): String = when (provider) {
+    Provider.OPENROUTER -> "OpenRouter"
+    Provider.OPENAI -> "OpenAI"
+    Provider.ANTHROPIC -> "Anthropic"
+}
 
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
@@ -48,13 +56,12 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     ) {
         item {
             Text("Provider", style = MaterialTheme.typography.titleSmall)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Provider.values().forEach { p ->
-                    Button(onClick = { viewModel.setProvider(p) }, modifier = Modifier.weight(1f)) {
-                        Text(p.name)
-                    }
-                }
-            }
+            SelectionChips(
+                options = Provider.entries,
+                selected = provider,
+                label = { providerLabel(it) },
+                onSelect = { viewModel.setProvider(it) }
+            )
         }
         item {
             OutlinedTextField(value = apiKey, onValueChange = viewModel::setApiKey,

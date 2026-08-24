@@ -28,6 +28,8 @@ class InMemorySessionRepository : SessionRepository {
         return messages[sessionId]?.toList() ?: emptyList()
     }
 
+    override suspend fun getSession(sessionId: String): Session? = sessions[sessionId]
+
     override suspend fun listSessions(): List<SessionSummary> {
         return sessions.values.map { SessionSummary(it.id, it.title, it.updatedAt) }
     }

@@ -8,13 +8,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -38,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
 import com.theraipist.core.modality.TherapyModality
+import com.theraipist.ui.components.SelectionChips
 import com.theraipist.core.model.Message
 import com.theraipist.core.model.Role
 
@@ -130,7 +129,10 @@ fun ChatScreen(
         LazyColumn(
             state = listState,
             modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            // Anchored to the bottom, next to the composer. Top-anchored, a new
+            // conversation left a screen-height gap between the first message and
+            // the input, which reads as something having failed to load.
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
         ) {
             items(state.messages, key = { it.id }) { message -> MessageBubble(message) }
         }
@@ -192,18 +194,16 @@ private fun ModalityPicker(
     onSelect: (TherapyModality?) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyRow(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        item {
-            FilterChip(selected = selected == null, onClick = { onSelect(null) }, label = { Text("Auto") })
-        }
-        items(TherapyModality.values().toList()) { modality ->
-            FilterChip(
-                selected = selected == modality,
-                onClick = { onSelect(if (selected == modality) null else modality) },
-                label = { Text(modalityLabel(modality)) }
-            )
-        }
-    }
+    // A LazyRow scrolled horizontally with no affordance, so the last option
+    // rendered as a clipped "R" at the screen edge and looked broken. These wrap
+    // onto as many lines as they need, like every other chip group in the app.
+    SelectionChips(
+        options = listOf<TherapyModality?>(null) + TherapyModality.entries,
+        selected = selected,
+        label = { it?.let(::modalityLabel) ?: "Auto" },
+        onSelect = onSelect,
+        modifier = modifier
+    )
 }
 
 private fun modalityLabel(modality: TherapyModality): String = when (modality) {

@@ -21,8 +21,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.theraipist.config.TherapyConfig
@@ -65,8 +70,26 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
         }
         item {
-            OutlinedTextField(value = apiKey, onValueChange = viewModel::setApiKey,
-                label = { Text("API Key") }, modifier = Modifier.fillMaxWidth())
+            // The key is a secret and this screen is reachable at any time, so it
+            // is masked by default. Onboarding already masked it; leaving Settings
+            // in the clear meant the same secret was hidden on one screen and
+            // legible on the other. Revealing is opt-in, per visit, so a mistyped
+            // key can still be checked.
+            var keyVisible by rememberSaveable { mutableStateOf(false) }
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = viewModel::setApiKey,
+                label = { Text("API Key") },
+                singleLine = true,
+                visualTransformation =
+                    if (keyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    TextButton(onClick = { keyVisible = !keyVisible }) {
+                        Text(if (keyVisible) "Hide" else "Show")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().testTag("apiKeyField")
+            )
         }
         item {
             OutlinedTextField(value = model, onValueChange = viewModel::setModel,

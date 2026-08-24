@@ -62,7 +62,7 @@ class SettingsScreenTest {
     ) = SettingsViewModel(secureSettings, ModelSettings(secureSettings), modelDownloader, FakeEmbeddingModelDownloader())
 
     @Test
-    fun showsStoredProviderApiKeyAndModel() {
+    fun showsStoredProviderAndModel() {
         val secureSettings = FakeSecureSettings(
             initialProvider = Provider.OPENAI,
             initialApiKey = "sk-existing",
@@ -70,8 +70,30 @@ class SettingsScreenTest {
         )
         composeRule.setContent { SettingsScreen(viewModel = buildViewModel(secureSettings)) }
 
-        composeRule.onNodeWithText("sk-existing").assertIsDisplayed()
         composeRule.onNodeWithText("gpt-4o-mini").assertIsDisplayed()
+    }
+
+    /**
+     * Settings is reachable at any moment, so the key must not sit on screen in
+     * the clear. Onboarding already masked it; this screen did not, which left
+     * the same secret hidden in one place and legible in the other.
+     */
+    @Test
+    fun theStoredApiKeyIsNotLegibleByDefault() {
+        val secureSettings = FakeSecureSettings(initialApiKey = "sk-existing")
+        composeRule.setContent { SettingsScreen(viewModel = buildViewModel(secureSettings)) }
+
+        composeRule.onNodeWithText("sk-existing").assertDoesNotExist()
+    }
+
+    @Test
+    fun theApiKeyCanBeRevealedDeliberately() {
+        val secureSettings = FakeSecureSettings(initialApiKey = "sk-existing")
+        composeRule.setContent { SettingsScreen(viewModel = buildViewModel(secureSettings)) }
+
+        composeRule.onNodeWithText("Show").performClick()
+
+        composeRule.onNodeWithText("sk-existing").assertIsDisplayed()
     }
 
     @Test

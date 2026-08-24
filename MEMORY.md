@@ -1,4 +1,4 @@
-# MEMORY.md — therAIpist (Android)
+# MEMORY.md — Selfward (Android)
 
 Project memory: architecture decisions and status. Keep this in sync with README.
 

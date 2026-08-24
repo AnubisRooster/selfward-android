@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "therAIpist"
+rootProject.name = "Selfward"
 include(":app")

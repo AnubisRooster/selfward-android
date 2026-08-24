@@ -148,9 +148,11 @@ class ChatViewModelTest {
         private val throwOnStream: Boolean = false
     ) : LocalLLMService {
         private var loaded = false
+        var lastMessages: List<Message>? = null
         override suspend fun isModelLoaded(): Boolean = loaded
         override suspend fun load(model: LocalModel, path: String) { loaded = true }
         override fun stream(messages: List<Message>) = kotlinx.coroutines.flow.flow {
+            lastMessages = messages
             if (throwOnStream) throw RuntimeException("native inference failed")
             deltas.forEach { emit(it) }
         }
@@ -165,6 +167,14 @@ class ChatViewModelTest {
         override fun cancelDownload(model: LocalModel) {}
         override fun deleteDownload(model: LocalModel) {}
         override suspend fun awaitCompletion(model: LocalModel): DownloadStatus = DownloadStatus.DOWNLOADED
+    }
+
+    private class FakeIntakeStore(private var intake: com.theraipist.core.intake.Intake = com.theraipist.core.intake.Intake()) :
+        com.theraipist.core.intake.IntakeStore {
+        override fun load() = intake
+        override fun save(intake: com.theraipist.core.intake.Intake) { this.intake = intake }
+        override fun clear() { intake = com.theraipist.core.intake.Intake() }
+        override var onboardingComplete: Boolean = true
     }
 
     private class FakeGraphRepository : GraphRepository {
@@ -224,7 +234,8 @@ class ChatViewModelTest {
         localLLMService: LocalLLMService = FakeLocalLLMService(),
         modelDownloader: ModelDownloader = FakeModelDownloader(),
         modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()),
-        localTts: FakeLocalTtsService = FakeLocalTtsService()
+        localTts: FakeLocalTtsService = FakeLocalTtsService(),
+        intakeStore: com.theraipist.core.intake.IntakeStore = FakeIntakeStore()
     ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
             repo,
@@ -239,7 +250,8 @@ class ChatViewModelTest {
             modelSettings,
             localLLMService,
             modelDownloader,
-            activeSessionHolder
+            activeSessionHolder,
+            intakeStore
         )
         return vm to repo
     }
@@ -462,6 +474,73 @@ class ChatViewModelTest {
         vm.send("hi")
 
         assertEquals(null, tts.spokenText)
+    }
+
+    private val sensitiveIntake = com.theraipist.core.intake.Intake(
+        name = "Sam",
+        concerns = "SENSITIVE-CONCERNS",
+        history = "SENSITIVE-HISTORY",
+        goals = "SENSITIVE-GOALS"
+    )
+
+    /**
+     * The whole point of collecting intake on Android rather than sending it as
+     * iOS does: it must reach an on-device model and nothing else.
+     */
+    @Test
+    fun intakeReachesTheOnDeviceModel() = runTest {
+        val local = ProgrammableLocalLLMService(deltas = listOf("ok"))
+        val (vm, _) = buildVm(
+            localLLMService = local,
+            modelDownloader = DownloadedModelDownloader(),
+            modelSettings = localModelSettings(),
+            intakeStore = FakeIntakeStore(sensitiveIntake)
+        )
+
+        vm.send("hello")
+
+        val system = local.lastMessages!!.single { it.role == Role.SYSTEM }.content
+        assertTrue(system.contains("SENSITIVE-CONCERNS"))
+        assertTrue(system.contains("SENSITIVE-HISTORY"))
+        assertTrue(system.contains("SENSITIVE-GOALS"))
+    }
+
+    @Test
+    fun intakeIsNeverSentToACloudProvider() = runTest {
+        val cloud = FakeChatService()
+        val (vm, _) = buildVm(chatService = cloud, intakeStore = FakeIntakeStore(sensitiveIntake))
+
+        vm.send("hello")
+
+        val sent = cloud.lastMessages!!.joinToString("\n") { it.content }
+        assertFalse(sent.contains("SENSITIVE-CONCERNS"))
+        assertFalse(sent.contains("SENSITIVE-HISTORY"))
+        assertFalse(sent.contains("SENSITIVE-GOALS"))
+    }
+
+    /**
+     * The subtle one: the local prompt carries the intake block, so a fallback
+     * from a failed on-device model must rebuild the prompt without it rather
+     * than forwarding what it already had.
+     */
+    @Test
+    fun intakeIsStrippedWhenLocalFailsOverToCloud() = runTest {
+        val cloud = FakeChatService()
+        val (vm, _) = buildVm(
+            chatService = cloud,
+            localLLMService = ProgrammableLocalLLMService(throwOnStream = true),
+            modelDownloader = DownloadedModelDownloader(),
+            modelSettings = localModelSettings(),
+            intakeStore = FakeIntakeStore(sensitiveIntake)
+        )
+
+        vm.send("hello")
+
+        val sent = cloud.lastMessages!!.joinToString("\n") { it.content }
+        assertTrue("expected the cloud fallback to have answered", sent.isNotEmpty())
+        assertFalse("intake leaked to the provider on fallback", sent.contains("SENSITIVE-CONCERNS"))
+        assertFalse(sent.contains("SENSITIVE-HISTORY"))
+        assertFalse(sent.contains("SENSITIVE-GOALS"))
     }
 
     @Test

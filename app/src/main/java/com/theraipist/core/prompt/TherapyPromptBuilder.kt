@@ -32,16 +32,23 @@ object TherapyPromptBuilder {
 
     fun modalityInstruction(modality: String): String? = TherapyConfig.MODALITY_PROMPTS[modality]
 
+    /**
+     * @param intakeContext the client-context block from onboarding, or null.
+     *   Only ever passed on the on-device path — see
+     *   [com.theraipist.core.intake.IntakeContext].
+     */
     fun buildConversation(
         persona: Persona,
         modality: String? = null,
         history: List<Message> = emptyList(),
-        userText: String
+        userText: String,
+        intakeContext: String? = null
     ): List<Message> {
+        val prompt = systemPrompt(persona, modality)
         val system = Message(
             id = "system",
             role = Role.SYSTEM,
-            content = systemPrompt(persona, modality)
+            content = if (intakeContext.isNullOrBlank()) prompt else "$prompt\n\n$intakeContext"
         )
         return buildList {
             add(system)

@@ -59,6 +59,13 @@ authenticate the request.
 **If you enable cloud text-to-speech**, the text of the assistant's replies is
 sent to the same provider to be turned into audio.
 
+**If you write or update your Narrative** while a cloud provider is selected,
+that is a larger disclosure than a single message: your notes, dreams and past
+conversations are sent to the provider together, in one batch, so it can weave
+them into a single account. The app says so on the Narrative screen before you
+press the button. Selecting an on-device model keeps the whole process on your
+phone.
+
 **If you use an on-device model**, nothing leaves your device. Inference and
 embeddings both run locally, and the app works with no network connection.
 

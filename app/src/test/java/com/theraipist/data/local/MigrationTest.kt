@@ -79,7 +79,7 @@ class MigrationTest {
     }
 
     private fun openMigrated() = Room.databaseBuilder(context, TherAIpistDatabase::class.java, dbName)
-        .addMigrations(MIGRATION_1_2)
+        .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
         .build()
 
     @Test
@@ -111,6 +111,20 @@ class MigrationTest {
         assertTrue("dreams table should exist and start empty", dreamsBefore.isEmpty())
     }
 
+    /** A v1 install must reach v3 in one go, not just v2. */
+    @Test
+    fun upgradingAllTheWayFromV1ReachesTheNarrativeTable() {
+        createVersion1Database()
+
+        val db = openMigrated()
+        val narrative = kotlinx.coroutines.runBlocking { db.narrativeDao().get() }
+        val session = kotlinx.coroutines.runBlocking { db.sessionDao().getById("s1") }
+        db.close()
+
+        assertEquals("the session must survive both migrations", "A hard week", session?.title)
+        assertTrue("narrative starts empty", narrative == null)
+    }
+
     @Test
     fun aFreshInstallHasTheSameTablesAsAnUpgradedOne() {
         val db = Room.inMemoryDatabaseBuilder(context, TherAIpistDatabase::class.java).build()
@@ -122,5 +136,6 @@ class MigrationTest {
 
         assertTrue("notes missing from a fresh database", tables.contains("notes"))
         assertTrue("dreams missing from a fresh database", tables.contains("dreams"))
+        assertTrue("narrative missing from a fresh database", tables.contains("narrative"))
     }
 }

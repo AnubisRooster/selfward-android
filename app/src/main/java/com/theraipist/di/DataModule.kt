@@ -11,6 +11,7 @@ import com.theraipist.core.local.ModelDownloader
 import com.theraipist.core.intake.IntakeStore
 import com.theraipist.core.journal.DreamRepository
 import com.theraipist.core.journal.NoteRepository
+import com.theraipist.core.narrative.NarrativeStore
 import com.theraipist.core.lock.LockoutStore
 import com.theraipist.core.lock.PinLockout
 import com.theraipist.core.lock.PinService
@@ -26,6 +27,7 @@ import com.theraipist.core.repository.SessionRepository
 import com.theraipist.core.voice.LocalTtsService
 import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.MIGRATION_1_2
+import com.theraipist.data.local.MIGRATION_2_3
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.download.AndroidModelDownloader
 import com.theraipist.data.local.embedding.AndroidEmbeddingModelDownloader
@@ -33,6 +35,7 @@ import com.theraipist.data.local.embedding.OnnxEmbeddingProvider
 import com.theraipist.data.local.llm.LlamaCppLocalService
 import com.theraipist.data.repository.RoomDreamRepository
 import com.theraipist.data.repository.RoomGraphRepository
+import com.theraipist.data.narrative.RoomNarrativeStore
 import com.theraipist.data.repository.RoomNoteRepository
 import com.theraipist.data.repository.RoomSessionRepository
 import com.theraipist.core.settings.SecureSettings
@@ -55,7 +58,7 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): TherAIpistDatabase =
         Room.databaseBuilder(context, TherAIpistDatabase::class.java, "theraipist.db")
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides
@@ -96,6 +99,10 @@ object DataModule {
     @Singleton
     fun provideTtsService(client: HttpClient, secureSettings: SecureSettings): TtsService =
         CloudTtsService(client, secureSettings)
+
+    @Provides
+    @Singleton
+    fun provideNarrativeStore(db: TherAIpistDatabase): NarrativeStore = RoomNarrativeStore(db)
 
     @Provides
     @Singleton

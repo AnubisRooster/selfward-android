@@ -45,3 +45,21 @@ val MIGRATION_1_2 = object : Migration(1, 2) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_dreams_sessionId` ON `dreams` (`sessionId`)")
     }
 }
+
+/** Adds the single-row narrative document table. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE IF NOT EXISTS `narrative` (
+                `id` TEXT NOT NULL,
+                `content` TEXT NOT NULL,
+                `sessionCount` INTEGER NOT NULL,
+                `sourceWatermark` INTEGER NOT NULL,
+                `updatedAt` INTEGER NOT NULL,
+                PRIMARY KEY(`id`)
+            )
+            """.trimIndent()
+        )
+    }
+}

@@ -5,9 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -19,46 +19,62 @@ import com.theraipist.config.CompanionGender
 import com.theraipist.config.CompanionPersonality
 import com.theraipist.config.PersonaKind
 import com.theraipist.config.SpiritualTradition
+import com.theraipist.ui.components.SelectionChips
+import com.theraipist.ui.components.prettifyEnumName
 
 @Composable
 fun PersonaScreen(viewModel: PersonaViewModel = hiltViewModel()) {
     val persona by viewModel.persona.collectAsState()
     Column(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text("Companion", style = MaterialTheme.typography.headlineSmall)
-        Text("Current: ${persona.kind} · ${persona.companionGender} · ${persona.companionPersonality} · ${persona.spiritualTradition}")
+        Text(
+            "Currently: ${prettifyEnumName(persona.kind.name)} · ${persona.companionGender.label} · " +
+                "${persona.companionPersonality.label} · ${persona.spiritualTradition.label}",
+            style = MaterialTheme.typography.bodyMedium
+        )
 
-        EnumSelector("Kind", enumValues<PersonaKind>(), persona.kind) { viewModel.setKind(it) }
-        EnumSelector("Gender", enumValues<CompanionGender>(), persona.companionGender) { viewModel.setGender(CompanionGender.valueOf(it.name)) }
-        EnumSelector("Personality", enumValues<CompanionPersonality>(), persona.companionPersonality) { viewModel.setPersonality(CompanionPersonality.valueOf(it.name)) }
-        EnumSelector("Tradition", enumValues<SpiritualTradition>(), persona.spiritualTradition) { viewModel.setSpiritualTradition(SpiritualTradition.valueOf(it.name)) }
+        Section("Kind") {
+            SelectionChips(
+                options = PersonaKind.entries,
+                selected = persona.kind,
+                label = { prettifyEnumName(it.name) },
+                onSelect = { viewModel.setKind(it) }
+            )
+        }
+        Section("Gender") {
+            SelectionChips(
+                options = CompanionGender.entries,
+                selected = persona.companionGender,
+                label = { it.label },
+                onSelect = { viewModel.setGender(it) }
+            )
+        }
+        Section("Personality") {
+            SelectionChips(
+                options = CompanionPersonality.entries,
+                selected = persona.companionPersonality,
+                label = { it.label },
+                onSelect = { viewModel.setPersonality(it) }
+            )
+        }
+        Section("Tradition") {
+            SelectionChips(
+                options = SpiritualTradition.entries,
+                selected = persona.spiritualTradition,
+                label = { it.label },
+                onSelect = { viewModel.setSpiritualTradition(it) }
+            )
+        }
     }
 }
 
 @Composable
-private inline fun <reified T : Enum<T>> EnumSelector(
-    label: String,
-    values: Array<T>,
-    selected: T,
-    crossinline onSelect: (T) -> Unit
-) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(label, style = MaterialTheme.typography.titleSmall)
-        androidx.compose.foundation.layout.Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            values.forEach { value ->
-                val isSel = value == selected
-                Button(
-                    onClick = { onSelect(value) },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(value.name)
-                }
-            }
-        }
+private fun Section(title: String, content: @Composable () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        content()
     }
 }

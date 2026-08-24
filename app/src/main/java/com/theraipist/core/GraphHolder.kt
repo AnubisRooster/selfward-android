@@ -6,6 +6,7 @@ import com.theraipist.core.embedding.EmbeddingProviderFactory
 import com.theraipist.core.embedding.MemoryVectorStore
 import com.theraipist.core.graph.GraphEdge
 import com.theraipist.core.graph.GraphNode
+import com.theraipist.core.graph.MessageAnalyzer
 import com.theraipist.core.graph.TherapyGraph
 import com.theraipist.core.local.DownloadStatus
 import com.theraipist.core.repository.GraphRepository
@@ -63,6 +64,43 @@ class GraphHolder @Inject constructor(
                 runCatching { repository.saveEdge(sessionId, edge) }
             }
             lastNodeId = id
+        }
+        publish()
+    }
+
+    /**
+     * Reads what the client just wrote and folds the people, feelings and
+     * beliefs it mentions into the graph, reinforcing anything already there.
+     *
+     * This runs on the client's own message rather than the reply, because the
+     * graph is meant to be a picture of what they brought, not of what the model
+     * said back. It is pure local text matching, so it costs nothing and works
+     * with no key and no connection.
+     */
+    suspend fun analyzeMessage(sessionId: String, text: String) {
+        ensureLoaded()
+        val extraction = MessageAnalyzer.analyze(text)
+        if (extraction.isEmpty) return
+
+        val idsByLabel = mutableMapOf<String, String>()
+        extraction.nodes.forEach { spec ->
+            val isNew = graph.findExact(spec.label) == null
+            val id = graph.upsertNode(spec.label, spec.kind)
+            idsByLabel[spec.label.lowercase()] = id
+            graph.nodeById(id)?.let { node ->
+                runCatching { repository.saveNode(sessionId, node) }
+                // Reinforcing does not change the label, so the vector would be
+                // identical; embedding is model inference, so only pay it once.
+                if (isNew) embed(id, node.label)
+            }
+        }
+        extraction.edges.forEach { spec ->
+            val sourceId = idsByLabel[spec.sourceLabel.lowercase()] ?: return@forEach
+            val targetId = idsByLabel[spec.targetLabel.lowercase()] ?: return@forEach
+            val edgeId = graph.upsertEdge(sourceId, targetId, spec.relation) ?: return@forEach
+            graph.allEdges().firstOrNull { it.id == edgeId }?.let { edge ->
+                runCatching { repository.saveEdge(sessionId, edge) }
+            }
         }
         publish()
     }

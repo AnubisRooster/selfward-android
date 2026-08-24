@@ -149,6 +149,10 @@ class ChatViewModel @Inject constructor(
         sessionRepository.appendMessage(sid, userMessage)
         _uiState.update { it.copy(messages = it.messages + userMessage) }
 
+        // Read what the client wrote into the graph before the reply is
+        // requested, so Insights reflects the message even if the request fails.
+        runCatching { graphHolder.analyzeMessage(sid, trimmed) }
+
         val promptKey = modalityRouter.promptKey(modality)
         // Resolved up front because it decides whether the intake block may be
         // included at all: it is only ever shown to a model running on-device.

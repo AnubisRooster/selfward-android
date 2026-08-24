@@ -29,6 +29,7 @@ import com.theraipist.core.voice.TtsService
 import com.theraipist.data.local.MIGRATION_1_2
 import com.theraipist.data.local.MIGRATION_2_3
 import com.theraipist.data.local.MIGRATION_3_4
+import com.theraipist.data.local.MIGRATION_4_5
 import com.theraipist.data.local.TherAIpistDatabase
 import com.theraipist.data.local.download.AndroidModelDownloader
 import com.theraipist.data.local.embedding.AndroidEmbeddingModelDownloader
@@ -59,7 +60,7 @@ object DataModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): TherAIpistDatabase =
         Room.databaseBuilder(context, TherAIpistDatabase::class.java, "theraipist.db")
-            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
             .build()
 
     @Provides

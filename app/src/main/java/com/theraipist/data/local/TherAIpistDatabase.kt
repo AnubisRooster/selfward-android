@@ -29,7 +29,7 @@ import com.theraipist.data.local.entity.SessionEntity
         DreamEntity::class,
         NarrativeEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class TherAIpistDatabase : RoomDatabase() {

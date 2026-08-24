@@ -73,3 +73,15 @@ val MIGRATION_3_4 = object : Migration(3, 4) {
         db.execSQL("ALTER TABLE `sessions` ADD COLUMN `isArchived` INTEGER NOT NULL DEFAULT 0")
     }
 }
+
+/**
+ * Gives graph nodes a strength, so a person or feeling raised repeatedly grows
+ * heavier instead of being stored again. Nodes from before the upgrade start at
+ * the base strength — their real weight is unknown, and inventing one would put
+ * fabricated emphasis on the client's own history.
+ */
+val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `graph_nodes` ADD COLUMN `strength` REAL NOT NULL DEFAULT 1.0")
+    }
+}

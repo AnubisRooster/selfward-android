@@ -14,11 +14,11 @@ ktlint {
 }
 
 android {
-    namespace = "com.theraipist"
+    namespace = "com.selfward"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.theraipist.app"
+        applicationId = "com.selfward.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1

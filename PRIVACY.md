@@ -1,6 +1,6 @@
-# Privacy Policy — therAIpist
+# Privacy Policy — Selfward
 
-therAIpist is a private AI companion for self-reflection. This policy describes
+Selfward is a private AI companion for self-reflection. This policy describes
 exactly what happens to what you write, including the cases where it leaves your
 device.
 
@@ -94,7 +94,7 @@ safeguarding system.
 
 ## Children
 
-therAIpist is not directed at children and should not be used by anyone under 13.
+Selfward is not directed at children and should not be used by anyone under 13.
 
 ## Your control
 
@@ -106,7 +106,7 @@ therAIpist is not directed at children and should not be used by anyone under 13
 
 ## Not medical care
 
-therAIpist is not a licensed therapist, psychologist, or medical provider, and is
+Selfward is not a licensed therapist, psychologist, or medical provider, and is
 not a substitute for professional mental-health care. In a crisis, contact
 emergency services or a crisis line — in the US, call or text **988**.
 

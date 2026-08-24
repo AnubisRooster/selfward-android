@@ -1,19 +1,19 @@
-# therAIpist (Android)
+# Selfward (Android)
 
 A private AI companion for self-reflection — multiple therapeutic framings, a
 memory that carries themes across sessions, and the option to run entirely
 on-device with no network at all.
 
-This is the Android fork of [therAIpist](https://github.com/AnubisRooster/therAIpist)
+This is the Android fork of [Selfward](https://github.com/AnubisRooster/Selfward)
 (the iOS original). Both share the same therapy "brain": prompts, personas, and
-safety patterns live in `app/src/main/java/com/theraipist/config/TherapyConfig.kt`
+safety patterns live in `app/src/main/java/com/selfward/config/TherapyConfig.kt`
 and are kept in sync with the iOS `TransferModels.swift` / `PersonaService.swift`.
 
 ---
 
 ## ⚠️ This is not therapy
 
-therAIpist is **not** a licensed therapist, psychologist, or medical provider, and
+Selfward is **not** a licensed therapist, psychologist, or medical provider, and
 it is not a substitute for professional mental-health care. It is a journaling and
 self-reflection tool.
 
@@ -171,8 +171,8 @@ configured cloud provider rather than failing the message.
 Requires JDK 17 and the Android SDK (API 34).
 
 ```bash
-git clone https://github.com/AnubisRooster/therAIpist-android.git
-cd therAIpist-android
+git clone https://github.com/AnubisRooster/selfward-android.git
+cd selfward-android
 ./gradlew assembleDebug
 ```
 

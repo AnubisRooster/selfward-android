@@ -179,12 +179,14 @@ object TherapyConfig {
         "stop taking your"
     )
 
-    val RESOURCE_MESSAGE: String =
-        "If you're experiencing thoughts of harming yourself or others, please reach out for support immediately:\n" +
-            "- National Crisis Hotline: 988\n" +
-            "- Crisis Text Line: Text HOME to 741741\n" +
-            "- Emergency Services: 911\n\n" +
-            "These resources are available 24/7 and are staffed by trained professionals."
+    /**
+     * Kept as the closing line only. The numbers themselves now come from
+     * [com.selfward.core.safety.CrisisResources], because these were US-only and
+     * were shown to everyone; and the old opening sentence duplicated the header
+     * the UI already puts above it.
+     */
+    const val RESOURCE_CLOSING: String =
+        "These lines are free, confidential, and open around the clock."
 }
 
 // MARK: - Persona enumerations (mirror iOS PersonaService.swift)

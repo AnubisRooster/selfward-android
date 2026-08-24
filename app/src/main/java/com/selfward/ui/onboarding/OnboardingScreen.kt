@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.selfward.config.TherapyConfig
+import com.selfward.core.safety.SafetyGuardrails
 import com.selfward.core.chat.Provider
 import com.selfward.ui.components.SelectionChips
 
@@ -132,7 +133,7 @@ private fun DisclaimerStep(acknowledged: Boolean, onAcknowledge: (Boolean) -> Un
         style = MaterialTheme.typography.bodyMedium
     )
     Text("If you are in crisis, please reach a real person:", style = MaterialTheme.typography.titleSmall)
-    Text(TherapyConfig.RESOURCE_MESSAGE, style = MaterialTheme.typography.bodyMedium)
+    Text(SafetyGuardrails.resourceMessage(), style = MaterialTheme.typography.bodyMedium)
 
     Row(verticalAlignment = Alignment.CenterVertically) {
         Checkbox(
@@ -267,7 +268,8 @@ private fun GoalsStep(value: String, onValueChange: (String) -> Unit) {
     )
     Text(
         "Selfward works best alongside real human support. If you ever feel " +
-            "overwhelmed, please reach out to someone — in the US you can call or text 988.",
+            "overwhelmed, please reach out to someone. The crisis lines for your " +
+                "region are listed at the start of this setup.",
         style = MaterialTheme.typography.bodyMedium
     )
 }

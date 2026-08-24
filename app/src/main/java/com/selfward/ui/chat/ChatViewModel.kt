@@ -98,9 +98,10 @@ class ChatViewModel @Inject constructor(
     private fun openSession(id: String) {
         sessionId = id
         viewModelScope.launch {
-            sessionPersona = sessionRepository.getSession(id)?.persona
+            val session = sessionRepository.getSession(id)
+            sessionPersona = session?.persona
             val messages = sessionRepository.getMessages(id)
-            _uiState.update { it.copy(messages = messages) }
+            _uiState.update { it.copy(messages = messages, sessionTitle = session?.title) }
         }
     }
 
@@ -129,6 +130,7 @@ class ChatViewModel @Inject constructor(
             val created = sessionRepository.createSession(personaHolder.persona.value)
             sessionId = created.id
             sessionPersona = created.persona
+            _uiState.update { it.copy(sessionTitle = created.title) }
         }
         val sid = sessionId!!
         val persona: Persona = sessionPersona ?: personaHolder.persona.value

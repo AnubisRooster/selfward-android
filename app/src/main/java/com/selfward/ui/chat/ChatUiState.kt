@@ -14,6 +14,8 @@ data class ChatUiState(
     val errorMessage: String? = null,
     val needsApiKey: Boolean = false,
     val reEntryMessage: String? = null,
+    /** Title of the open session, shown as the screen's heading. */
+    val sessionTitle: String? = null,
     /** Manual modality override; null means auto-detect via ModalityRouter. */
     val selectedModality: TherapyModality? = null
 )

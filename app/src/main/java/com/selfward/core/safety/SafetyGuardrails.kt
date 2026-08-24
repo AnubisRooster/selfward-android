@@ -22,7 +22,12 @@ object SafetyGuardrails {
         return TherapyConfig.BOUNDARY_PATTERNS.any { t.contains(it.lowercase()) }
     }
 
-    fun resourceMessage(): String = TherapyConfig.RESOURCE_MESSAGE
+    /**
+     * Crisis lines for [country] (defaulting to the device's locale), followed by
+     * the standing reassurance about availability.
+     */
+    fun resourceMessage(country: String? = java.util.Locale.getDefault().country): String =
+        CrisisResources.forCountry(country).asMessage() + "\n\n" + TherapyConfig.RESOURCE_CLOSING
 
     /**
      * On return after a prior crisis, invite a gentle check-in before resuming

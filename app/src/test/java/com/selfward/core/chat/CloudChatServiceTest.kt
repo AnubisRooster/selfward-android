@@ -206,4 +206,73 @@ class CloudChatServiceTest {
             )
         }
     }
+    /**
+     * Reproduces a live failure against OpenRouter. Asking for a model that is
+     * gated to "agentic harnesses" answers 200 with a plain JSON error body and
+     * no SSE framing at all:
+     *
+     *   {"error":{"message":"... is only available on agentic harnesses","code":403}}
+     *
+     * The status check passes, the parser keeps only `data:`-prefixed lines,
+     * finds none, and the collector sees an empty stream. The client was told
+     * "the model didn't send anything back", which is both wrong and unhelpful:
+     * the provider had said exactly what was wrong and the app threw it away.
+     */
+    @Test
+    fun anErrorReturnedAsAPlainBodyIsReportedRatherThanReadAsAnEmptyReply() {
+        val engine = MockEngine {
+            respond(
+                content = ByteReadChannel(
+                    """{"error":{"message":"thinkingmachines/inkling-small:free is only """ +
+                        """available on agentic harnesses","code":403}}"""
+                ),
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val failure = runCatching {
+            runBlocking { service(engine).sendStreaming(userMessage).toList() }
+        }.exceptionOrNull()
+
+        assertTrue("expected the provider's message to surface, got $failure",
+            failure?.message?.contains("agentic harnesses") == true)
+    }
+
+    /** The same shape without SSE framing, for a provider that answers 200 + error. */
+    @Test
+    fun aPlainBodyErrorSurvivesPrettyPrintedJson() {
+        val engine = MockEngine {
+            respond(
+                content = ByteReadChannel(
+                    "{\n  \"error\": {\n    \"message\": \"Rate limit exceeded\"\n  }\n}"
+                ),
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val failure = runCatching {
+            runBlocking { service(engine).sendStreaming(userMessage).toList() }
+        }.exceptionOrNull()
+
+        assertTrue("got $failure", failure?.message?.contains("Rate limit exceeded") == true)
+    }
+
+    /** A normal stream must not be mistaken for an error body. */
+    @Test
+    fun anOrdinaryStreamStillStreams() {
+        val engine = sseEngine(
+            """data: {"choices":[{"delta":{"content":"he"}}]}
+
+data: {"choices":[{"delta":{"content":"llo"}}]}
+
+data: [DONE]
+
+"""
+        )
+
+        val chunks = runBlocking { service(engine).sendStreaming(userMessage).toList() }
+
+        assertEquals(listOf("he", "llo"), chunks)
+    }
+
 }

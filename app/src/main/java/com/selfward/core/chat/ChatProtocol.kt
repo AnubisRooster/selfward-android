@@ -30,7 +30,14 @@ internal object ChatProtocol {
     data class StreamChunk(val choices: List<StreamChoice> = emptyList())
 
     @Serializable
-    data class ApiError(val message: String? = null, val type: String? = null)
+    data class ErrorMetadata(val raw: String? = null, val provider_name: String? = null)
+
+    @Serializable
+    data class ApiError(
+        val message: String? = null,
+        val type: String? = null,
+        val metadata: ErrorMetadata? = null
+    )
 
     @Serializable
     data class ErrorEnvelope(val error: ApiError? = null)
@@ -60,5 +67,12 @@ internal object ChatProtocol {
         runCatching { json.decodeFromString<ErrorEnvelope>(payload) }
             .getOrNull()
             ?.error
-            ?.let { it.message ?: it.type }
+            ?.let { error ->
+                // metadata.raw carries the sentence a person can act on. The
+                // top-level message is often just "Provider returned error",
+                // which says nothing about rate limits, gating, or what to do.
+                error.metadata?.raw?.takeIf { it.isNotBlank() }
+                    ?: error.message
+                    ?: error.type
+            }
 }

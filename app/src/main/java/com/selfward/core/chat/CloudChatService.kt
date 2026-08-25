@@ -132,10 +132,16 @@ class CloudChatService(
     }
 
     private suspend fun checkSuccess(response: HttpResponse) {
-        if (!response.status.isSuccess()) {
-            throw ChatServiceException(
-                "Chat request failed (${response.status.value}): ${response.bodyAsText().take(500)}"
-            )
-        }
+        if (response.status.isSuccess()) return
+        val body = response.bodyAsText()
+        // Prefer the provider's own sentence over the raw envelope. Dumping the
+        // JSON put "{"error":{"message":"Provider returned error"..." on screen,
+        // burying the part that says it is a shared-pool rate limit and will
+        // work again shortly.
+        val explained = ChatProtocol.parseStreamError(body)
+            ?: AnthropicProtocol.parseStreamError(body)
+        throw ChatServiceException(
+            explained ?: "Chat request failed (${response.status.value}): ${body.take(300)}"
+        )
     }
 }

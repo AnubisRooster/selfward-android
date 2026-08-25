@@ -18,6 +18,14 @@ interface UnusableModels {
     fun remember(modelId: String, reason: String)
     fun forget(modelId: String)
     fun clear()
+
+    /** Why [modelId] was set aside, for showing next to it in the list. */
+    fun reasonFor(modelId: String): String?
+
+    /** Models that answered a real request. */
+    fun working(): Set<String>
+
+    fun rememberWorking(modelId: String)
 }
 
 /**
@@ -30,6 +38,21 @@ interface UnusableModels {
  * model itself count.
  */
 object ModelRefusal {
+
+    /**
+     * OpenRouter will not serve any free model until the account opts in to
+     * prompt logging, and reports that per model rather than per account — so
+     * every model in the list refuses at once and it reads as "nothing works".
+     * Recognised so the app can say what to actually do about it.
+     */
+    const val DATA_POLICY_HINT =
+        "OpenRouter needs prompt logging switched on before free models will " +
+            "answer. Turn it on at openrouter.ai/settings/privacy, then try again."
+
+    fun isDataPolicy(message: String?): Boolean {
+        val text = message?.lowercase() ?: return false
+        return text.contains("data policy") || text.contains("no endpoints found")
+    }
 
     private val PERMANENT_MARKERS = listOf(
         "only available on agentic harnesses",
@@ -57,6 +80,12 @@ object ModelRefusal {
         "503",
         "502"
     )
+
+    /** True when the failure was about the moment rather than the model. */
+    fun isTransient(message: String?): Boolean {
+        val text = message?.lowercase() ?: return false
+        return TRANSIENT_MARKERS.any { text.contains(it) }
+    }
 
     fun isPermanent(message: String?): Boolean {
         val text = message?.lowercase() ?: return false

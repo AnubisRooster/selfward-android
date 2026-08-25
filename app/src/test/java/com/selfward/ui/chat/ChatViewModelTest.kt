@@ -659,6 +659,13 @@ class ChatViewModelTest {
         override fun remember(modelId: String, reason: String) { remembered[modelId] = reason }
         override fun forget(modelId: String) { remembered.remove(modelId) }
         override fun clear() = remembered.clear()
+        override fun reasonFor(modelId: String) = remembered[modelId]
+        val workingIds = mutableSetOf<String>()
+        override fun working() = workingIds.toSet()
+        override fun rememberWorking(modelId: String) {
+            workingIds += modelId
+            remembered.remove(modelId)
+        }
     }
 
 
@@ -790,6 +797,82 @@ class ChatViewModelTest {
         assertEquals("gpt-4o-mini", settings.model)
         assertTrue(unusable.all().isEmpty())
         assertTrue(vm.uiState.value.errorMessage!!.contains("model not found"))
+    }
+
+
+    /**
+     * The direct answer to "which of these actually works". The catalogue cannot
+     * say — gating and the account's data policy are both invisible until a real
+     * request is refused — so the app asks each one and reports back.
+     */
+    @Test
+    fun checkingAllModelsFindsTheOneThatAnswersAndSelectsIt() = runTest {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENROUTER,
+            initialApiKey = "sk-or-test",
+            initialModel = "refuses/one:free"
+        )
+        val unusable = FakeUnusable()
+        val (vm, _) = buildVm(
+            chatService = object : ChatService {
+                override fun sendStreaming(messages: List<Message>): Flow<String> = flow {
+                    if (settings.model == "answers/two:free") emit("hi")
+                    else throw ChatServiceException("only available on agentic harnesses")
+                }
+            },
+            secureSettings = settings,
+            catalog = FakeCatalog(
+                listOf(
+                    OpenRouterModel("refuses/one:free", "One", "0", "0", 1_000, intelligenceIndex = 90.0),
+                    OpenRouterModel("answers/two:free", "Two", "0", "0", 1_000, intelligenceIndex = 50.0)
+                )
+            ),
+            unusable = unusable
+        )
+        vm.refreshFreeModels()
+
+        vm.checkWhichModelsWork()
+
+        assertEquals("answers/two:free", settings.model)
+        assertTrue("refuses/one:free" in unusable.all())
+        assertTrue("answers/two:free" in unusable.working())
+        assertEquals(null, vm.probeResults.value["answers/two:free"])
+        assertNotNull(vm.probeResults.value["refuses/one:free"])
+    }
+
+    /**
+     * Every free model refusing at once is what an account without prompt
+     * logging enabled looks like. Saying "none of them worked" would send
+     * someone hunting for a better model when the setting is the problem.
+     */
+    @Test
+    fun aDataPolicyRefusalIsExplainedRatherThanBlamedOnTheModels() = runTest {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENROUTER,
+            initialApiKey = "sk-or-test",
+            initialModel = "a/one:free"
+        )
+        val (vm, _) = buildVm(
+            chatService = object : ChatService {
+                override fun sendStreaming(messages: List<Message>): Flow<String> = flow {
+                    throw ChatServiceException(
+                        "Chat request failed: No endpoints found matching your data policy"
+                    )
+                }
+            },
+            secureSettings = settings,
+            catalog = FakeCatalog(
+                listOf(OpenRouterModel("a/one:free", "One", "0", "0", 1_000))
+            ),
+            unusable = FakeUnusable()
+        )
+        vm.refreshFreeModels()
+
+        vm.checkWhichModelsWork()
+
+        val notice = vm.uiState.value.modelNotice
+        assertTrue("expected the setting to be named, got $notice",
+            notice?.contains("openrouter.ai/settings/privacy") == true)
     }
 
 }

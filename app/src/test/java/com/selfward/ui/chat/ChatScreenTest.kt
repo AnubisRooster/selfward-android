@@ -294,6 +294,13 @@ class ChatScreenTest {
         override fun remember(modelId: String, reason: String) { remembered[modelId] = reason }
         override fun forget(modelId: String) { remembered.remove(modelId) }
         override fun clear() = remembered.clear()
+        override fun reasonFor(modelId: String) = remembered[modelId]
+        val workingIds = mutableSetOf<String>()
+        override fun working() = workingIds.toSet()
+        override fun rememberWorking(modelId: String) {
+            workingIds += modelId
+            remembered.remove(modelId)
+        }
     }
 
 }

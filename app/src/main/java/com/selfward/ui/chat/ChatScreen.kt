@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -53,6 +56,8 @@ fun ChatScreen(
         val state by viewModel.uiState.collectAsState()
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
     val freeModels by viewModel.freeModels.collectAsState()
+    val probeResults by viewModel.probeResults.collectAsState()
+    val probing by viewModel.probing.collectAsState()
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -98,8 +103,11 @@ fun ChatScreen(
         ModelBar(
             label = state.modelLabel,
             models = freeModels,
+            probeResults = probeResults,
+            probing = probing,
             onSelect = viewModel::selectModel,
-            onRefresh = viewModel::refreshFreeModels
+            onRefresh = viewModel::refreshFreeModels,
+            onCheck = viewModel::checkWhichModelsWork
         )
 
         state.modelNotice?.let { notice ->
@@ -266,8 +274,11 @@ private fun ModalityPicker(
 private fun ModelBar(
     label: String?,
     models: List<OpenRouterModel>,
+    probeResults: Map<String, String?>,
+    probing: String?,
     onSelect: (String) -> Unit,
-    onRefresh: () -> Unit
+    onRefresh: () -> Unit,
+    onCheck: () -> Unit
 ) {
     if (label == null) return
     var expanded by rememberSaveable { mutableStateOf(false) }
@@ -292,38 +303,83 @@ private fun ModelBar(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Free models, best first",
+                if (probing != null) "Checking $probing…" else "${models.size} free models, best first",
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.weight(1f)
             )
-            TextButton(onClick = onRefresh) { Text("Refresh") }
+            TextButton(onClick = onRefresh, enabled = probing == null) { Text("Refresh") }
+            TextButton(onClick = onCheck, enabled = probing == null) { Text("Check all") }
         }
-        models.take(MODELS_IN_CHAT).forEach { model ->
-            Surface(
-                tonalElevation = 1.dp,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 4.dp)
-                    .clickable {
+
+        // Every viable free model, not a shortlist: which ones a given account
+        // can reach is not knowable in advance, so hiding most of them hides the
+        // one that would have worked. Capped in height and scrolled so a long
+        // catalogue cannot push the conversation off the screen.
+        Column(
+            Modifier
+                .heightIn(max = MODEL_LIST_MAX_HEIGHT)
+                .verticalScroll(rememberScrollState())
+        ) {
+            models.forEach { model ->
+                ModelRow(
+                    model = model,
+                    result = probeResults[model.id],
+                    checked = probeResults.containsKey(model.id),
+                    onSelect = {
                         onSelect(model.id)
                         expanded = false
                     }
-            ) {
-                Column(Modifier.padding(8.dp)) {
-                    Text(model.shortName, style = MaterialTheme.typography.bodyMedium)
-                    Text(
-                        listOfNotNull(
-                            model.vendor.takeIf { it.isNotEmpty() },
-                            model.intelligenceIndex?.let { "rated %.0f".format(it) },
-                            model.contextLength.takeIf { it > 0 }?.let { "${it / 1000}k" }
-                        ).joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                }
+                )
             }
         }
     }
 }
 
-/** A shortlist, not the catalogue — this sits above a conversation. */
-private const val MODELS_IN_CHAT = 6
+@Composable
+private fun ModelRow(
+    model: OpenRouterModel,
+    result: String?,
+    checked: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        tonalElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).clickable(onClick = onSelect)
+    ) {
+        Column(Modifier.padding(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    model.shortName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f)
+                )
+                if (checked) {
+                    Text(
+                        if (result == null) "answers" else "refused",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (result == null) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+            Text(
+                listOfNotNull(
+                    model.vendor.takeIf { it.isNotEmpty() },
+                    model.intelligenceIndex?.let { "rated %.0f".format(it) },
+                    model.contextLength.takeIf { it > 0 }?.let { "${it / 1000}k" }
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall
+            )
+            result?.let { reason ->
+                Text(
+                    reason.take(140),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+/** Enough to browse without the conversation disappearing behind it. */
+private val MODEL_LIST_MAX_HEIGHT = 320.dp

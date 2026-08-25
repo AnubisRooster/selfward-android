@@ -75,9 +75,15 @@ so the artwork and the first screen match):
 - `feature-graphic-1024x500.png` — Play feature graphic. Leads with the claim
   rather than the name: in a search result nobody knows the name yet, but they
   do already distrust therapy apps with their data.
-- `site-banner-1600x500.png` — header for the marketing site. **Mark only, no
-  wordmark** — Google Sites draws the site title over this image, so a banner
-  containing "Selfward" would show the name twice.
+- `site-banner-1600x500.png` — header for the marketing site, and the image
+  actually in use on all three pages. A quiet ground with the glyph as a
+  low-contrast watermark, low and inboard.
+
+  It looks understated for a reason. Sites draws the page title *over* this
+  image and then crops it to fill the container: a centred mark landed behind
+  the title, and a mark near the right edge was cropped away. The watermark is
+  what survives both. Do not "fix" it back to a prominent mark without checking
+  the live header first.
 - `banner-1600x500.png` — the same treatment *with* the wordmark, for anywhere
   nothing else supplies the name: README header, social preview cards.
 - `screenshots/*.png` — recaptured against the renamed build. Recapture again

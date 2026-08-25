@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.selfward.core.ModelSettings
 import com.selfward.core.chat.ChatService
 import com.selfward.core.chat.MissingApiKeyException
+import com.selfward.core.export.NarrativeExport
 import com.selfward.core.journal.DreamRepository
 import com.selfward.core.journal.NoteRepository
 import com.selfward.core.local.GGUFModelCatalog
@@ -17,9 +18,15 @@ import com.selfward.core.narrative.NarrativeSource
 import com.selfward.core.narrative.NarrativeSources
 import com.selfward.core.narrative.NarrativeStore
 import com.selfward.core.repository.SessionRepository
+import com.selfward.data.export.ExportFiles
+import com.selfward.data.export.ExportedFile
+import com.selfward.data.export.NarrativePdfWriter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -31,7 +38,8 @@ data class NarrativeUiState(
     val error: String? = null,
     val nothingNew: Boolean = false,
     /** True when replies come from the phone, which changes what regenerating sends. */
-    val onDevice: Boolean = false
+    val onDevice: Boolean = false,
+    val exporting: Boolean = false
 )
 
 @HiltViewModel
@@ -42,11 +50,67 @@ class NarrativeViewModel @Inject constructor(
     private val sessionRepository: SessionRepository,
     private val chatService: ChatService,
     private val localLLMService: LocalLLMService,
-    private val modelSettings: ModelSettings
+    private val modelSettings: ModelSettings,
+    private val exportFiles: ExportFiles,
+    private val pdfWriter: NarrativePdfWriter
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(NarrativeUiState())
     val uiState = _uiState.asStateFlow()
+
+    /** Set when a file is written and waiting to be offered to the share sheet. */
+    private val _exported = MutableStateFlow<ExportedFile?>(null)
+    val exported: StateFlow<ExportedFile?> = _exported.asStateFlow()
+
+    enum class NarrativeFormat { MARKDOWN, PDF }
+
+    /**
+     * Writes the narrative in [format] and offers it for sharing.
+     *
+     * Nothing is sent anywhere: the file is written into the app's own cache
+     * and handed to the share sheet, where the person chooses what happens to
+     * it. Exporting an empty narrative is refused rather than producing a
+     * document with a heading and no story under it.
+     */
+    fun export(format: NarrativeFormat) {
+        val document = _uiState.value.document
+        if (document.isEmpty) {
+            _uiState.update { it.copy(error = "There is no narrative to export yet.") }
+            return
+        }
+        if (_uiState.value.exporting) return
+        _uiState.update { it.copy(exporting = true, error = null) }
+
+        viewModelScope.launch {
+            val file = runCatching {
+                withContext(Dispatchers.IO) {
+                    when (format) {
+                        NarrativeFormat.MARKDOWN -> exportFiles.writeText(
+                            NarrativeExport.MARKDOWN_FILENAME,
+                            NarrativeExport.markdown(document)
+                        ).let { ExportedFile(it, "text/markdown", "My Story") }
+
+                        NarrativeFormat.PDF -> exportFiles.writeBinary(
+                            NarrativeExport.PDF_FILENAME
+                        ) { out -> pdfWriter.render(NarrativeExport.paginate(document), out) }
+                            .let { ExportedFile(it, "application/pdf", "My Story") }
+                    }
+                }
+            }.getOrNull()
+
+            if (file == null) {
+                _uiState.update { it.copy(exporting = false, error = "Couldn't write the file.") }
+            } else {
+                _exported.value = file
+                _uiState.update { it.copy(exporting = false) }
+            }
+        }
+    }
+
+    /** Called once the share sheet has been shown, so it is not shown again. */
+    fun exportHandled() {
+        _exported.value = null
+    }
 
     init {
         viewModelScope.launch {

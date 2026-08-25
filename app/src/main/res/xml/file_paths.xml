@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The only path the app shares out. It names the exports directory alone, so a
+    read granted to another app cannot reach the sessions database, the
+    downloaded models, or the encrypted preferences holding the API keys.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

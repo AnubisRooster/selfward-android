@@ -16,6 +16,8 @@ import com.selfward.core.lock.LockoutStore
 import com.selfward.core.lock.PinLockout
 import com.selfward.core.lock.PinService
 import com.selfward.core.lock.PinStore
+import com.selfward.data.export.ExportFiles
+import com.selfward.data.export.NarrativePdfWriter
 import com.selfward.data.intake.EncryptedIntakeStore
 import com.selfward.data.lock.EncryptedPinStore
 import com.selfward.data.lock.PrefsLockoutStore
@@ -76,6 +78,15 @@ object DataModule {
     @Provides
     @Singleton
     fun provideLocalLLMService(): LocalLLMService = LlamaCppLocalService()
+
+    @Provides
+    @Singleton
+    fun provideExportFiles(@ApplicationContext context: Context): ExportFiles =
+        ExportFiles(context)
+
+    @Provides
+    @Singleton
+    fun provideNarrativePdfWriter(): NarrativePdfWriter = NarrativePdfWriter()
 
     @Provides
     @Singleton

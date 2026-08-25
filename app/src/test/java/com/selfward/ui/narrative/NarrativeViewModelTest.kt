@@ -17,6 +17,8 @@ import com.selfward.core.model.Role
 import com.selfward.core.narrative.NarrativeDocument
 import com.selfward.core.narrative.NarrativeStore
 import com.selfward.core.repository.InMemorySessionRepository
+import com.selfward.data.export.ExportFiles
+import com.selfward.data.export.NarrativePdfWriter
 import com.selfward.data.settings.FakeSecureSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,8 +34,15 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+// Robolectric because exporting writes a real file and hands back a content
+// uri, and neither exists on a bare JVM.
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [33])
 class NarrativeViewModelTest {
 
     private class FakeNarrativeStore(private var doc: NarrativeDocument? = null) : NarrativeStore {
@@ -101,7 +110,11 @@ class NarrativeViewModelTest {
         chat: ChatService = RecordingChatService(),
         local: LocalLLMService = RecordingLocalLLM(),
         settings: ModelSettings = ModelSettings(FakeSecureSettings())
-    ) = NarrativeViewModel(store, notes, dreams, sessions, chat, local, settings)
+    ) = NarrativeViewModel(
+        store, notes, dreams, sessions, chat, local, settings,
+        ExportFiles(androidx.test.core.app.ApplicationProvider.getApplicationContext()),
+        NarrativePdfWriter()
+    )
 
     private suspend fun givenASession() =
         sessions.createSession(Persona(PersonaKind.THERAPIST), "A session").id

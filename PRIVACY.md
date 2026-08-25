@@ -110,11 +110,28 @@ Selfward is not directed at children and should not be used by anyone under 13.
 
 ## Your control
 
+- **Take your data with you.** Your Narrative can be exported as Markdown or a
+  PDF, and your memory graph as GraphML or Cytoscape JSON — open formats that
+  other software reads. Nothing about the export leaves your device on its own:
+  the file is written into the app's own storage and handed to Android's share
+  sheet, where **you** choose what happens to it. If you close the share sheet,
+  it goes nowhere.
 - **Delete any session** at any time from within the app.
 - **Remove your API key** in Settings to stop all cloud processing.
 - **Switch to an on-device model** to stop sending anything off the device.
 - **Uninstall the app** to remove all locally stored data, including sessions,
   insights, keys, and any downloaded models.
+
+### A note on exported files
+
+An exported file is **not** protected by your PIN, and is not encrypted by the
+app. That is what makes it useful — another program has to be able to open it —
+but it means an export you save to shared storage or send to another app is
+readable by anything that can reach it. Once you hand a file to another app, it
+is under that app's control, not this one's.
+
+The app keeps only the most recent export, in its own temporary storage, and
+replaces it the next time you export anything.
 
 ## Not medical care
 

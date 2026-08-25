@@ -7,42 +7,90 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.selfward.data.export.share
+import com.selfward.ui.components.ExportMenu
+import com.selfward.ui.components.ExportOption
 import com.selfward.core.graph.GraphNode
 import com.selfward.core.graph.MessageAnalyzer
 
 @Composable
 fun GraphScreen(viewModel: GraphViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
+    val exported by viewModel.exported.collectAsState()
+    val context = LocalContext.current
 
     // The graph grows while the user is on the chat tab, so recompute on return
     // rather than showing whatever was true when this screen was first created.
     LaunchedEffect(Unit) { viewModel.refresh() }
 
+    // Offered once per export. Clearing it immediately means returning from the
+    // share sheet does not re-open it.
+    LaunchedEffect(exported) {
+        exported?.let {
+            context.share(it)
+            viewModel.exportHandled()
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Insights", style = MaterialTheme.typography.headlineSmall)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Insights",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f)
+            )
+            if (!state.isEmpty) {
+                ExportMenu(
+                    options = listOf(
+                        ExportOption("Cytoscape JSON") {
+                            viewModel.export(GraphViewModel.GraphFormat.JSON)
+                        },
+                        ExportOption("GraphML (Gephi)") {
+                            viewModel.export(GraphViewModel.GraphFormat.GRAPHML)
+                        }
+                    )
+                )
+            }
+        }
         Spacer(Modifier.height(4.dp))
         Text(
             "Drawn from your own messages on this device. Nothing here is sent anywhere.",
             style = MaterialTheme.typography.bodySmall
         )
+        state.exportError?.let { message ->
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+            ) {
+                Column(Modifier.padding(12.dp)) {
+                    Text(message, style = MaterialTheme.typography.bodyMedium)
+                    TextButton(onClick = viewModel::dismissExportError) { Text("Dismiss") }
+                }
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
 
         val insights = state.insights

@@ -1,6 +1,8 @@
 package com.selfward.ui.chat
 
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -155,8 +157,12 @@ class ChatScreenTest {
         }
     }
 
-    private fun buildViewModel(chatService: ChatService = FakeChatService()): ChatViewModel = ChatViewModel(
-        FakeSessionRepository(),
+    private fun buildViewModel(
+        chatService: ChatService = FakeChatService(),
+        sessionRepository: SessionRepository = FakeSessionRepository(),
+        activeSessionHolder: ActiveSessionHolder = ActiveSessionHolder()
+    ): ChatViewModel = ChatViewModel(
+        sessionRepository,
         chatService,
         ModalityRouter,
         TherapyPromptBuilder,
@@ -168,9 +174,25 @@ class ChatScreenTest {
         ModelSettings(FakeSecureSettings()),
         FakeLocalLLMService(),
         FakeModelDownloader(),
-        ActiveSessionHolder(),
+        activeSessionHolder,
         FakeIntakeStore()
     )
+
+    /**
+     * Stages a conversation the way the Sessions screen does — write it to the
+     * repository, then hand the id over through [ActiveSessionHolder], which is
+     * what ChatViewModel consumes at construction.
+     */
+    private fun viewModelShowing(messages: List<Message>): ChatViewModel {
+        val repo = FakeSessionRepository()
+        val holder = ActiveSessionHolder()
+        kotlinx.coroutines.runBlocking {
+            val session = repo.createSession(Persona(com.selfward.config.PersonaKind.THERAPIST), "A session")
+            messages.forEach { repo.appendMessage(session.id, it) }
+            holder.open(session.id)
+        }
+        return buildViewModel(sessionRepository = repo, activeSessionHolder = holder)
+    }
 
     @Test
     fun sendingAMessageShowsUserBubble() {
@@ -203,4 +225,55 @@ class ChatScreenTest {
 
         assertTrue(vm.uiState.value.selectedModality == TherapyModality.TALK)
     }
+
+    /**
+     * Every bubble used to carry its mode, so a whole conversation read TALK,
+     * TALK, TALK — a label on everything tells you nothing. The chip row at the
+     * top still offers "Talk" as a choice, so the assertion counts bubbles by
+     * looking for the exchange that follows the stamp.
+     */
+    @Test
+    fun anUnchangedModalityIsNotStampedOnEveryBubble() {
+        val vm = viewModelShowing(
+            listOf(
+                message("m1", Role.USER, "first thing", TherapyModality.TALK),
+                message("m2", Role.ASSISTANT, "a reply", TherapyModality.TALK),
+                message("m3", Role.USER, "second thing", TherapyModality.TALK)
+            )
+        )
+        composeRule.setContent { ChatScreen(viewModel = vm) }
+
+        // One stamp for the run, not one per message.
+        composeRule.onAllNodesWithText("Talk").assertCountEquals(2) // chip + single stamp
+    }
+
+    @Test
+    fun theModalityIsStampedWhereItChanges() {
+        val vm = viewModelShowing(
+            listOf(
+                message("m1", Role.USER, "first thing", TherapyModality.TALK),
+                message("m2", Role.ASSISTANT, "a reply", TherapyModality.TALK),
+                message("m3", Role.USER, "I had a dream", TherapyModality.DREAM)
+            )
+        )
+        composeRule.setContent { ChatScreen(viewModel = vm) }
+
+        // "Dream" appears as a chip and once more where the conversation turned.
+        composeRule.onAllNodesWithText("Dream").assertCountEquals(2)
+    }
+
+    /** The raw enum name must never reach the screen. */
+    @Test
+    fun theStampIsWrittenForAReaderNotAsAnEnum() {
+        val vm = viewModelShowing(
+            listOf(message("m1", Role.USER, "something", TherapyModality.ACTIVE_IMAGINATION))
+        )
+        composeRule.setContent { ChatScreen(viewModel = vm) }
+
+        composeRule.onNodeWithText("ACTIVE_IMAGINATION").assertDoesNotExist()
+        composeRule.onAllNodesWithText("Active Imagination").assertCountEquals(2)
+    }
+
+    private fun message(id: String, role: Role, content: String, modality: TherapyModality) =
+        Message(id = id, role = role, content = content, modality = modality.name)
 }

@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -144,7 +144,14 @@ fun ChatScreen(
             // the input, which reads as something having failed to load.
             verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.Bottom)
         ) {
-            items(state.messages, key = { it.id }) { message -> MessageBubble(message) }
+            itemsIndexed(state.messages, key = { _, m -> m.id }) { index, message ->
+                // The mode is announced only where it changes. Stamping every
+                // bubble with TALK said nothing on any of them; a stamp that
+                // appears when the conversation moves into Dream or Grounding
+                // is the only time it carries information.
+                val previous = state.messages.getOrNull(index - 1)?.modality
+                MessageBubble(message, showsModality = message.modality != previous)
+            }
         }
 
             Row(
@@ -176,7 +183,7 @@ fun ChatScreen(
 }
 
 @Composable
-private fun MessageBubble(message: Message) {
+private fun MessageBubble(message: Message, showsModality: Boolean) {
     val isUser = message.role == Role.USER
     Box(Modifier.fillMaxWidth(), contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart) {
         Surface(
@@ -185,8 +192,10 @@ private fun MessageBubble(message: Message) {
             modifier = Modifier.clip(RoundedCornerShape(12.dp)).padding(4.dp)
         ) {
             Column(Modifier.padding(10.dp)) {
-                message.modality?.let {
-                    Text(it, style = MaterialTheme.typography.labelSmall)
+                if (showsModality) {
+                    message.modality
+                        ?.let { name -> TherapyModality.entries.firstOrNull { it.name == name } }
+                        ?.let { Text(it.label, style = MaterialTheme.typography.labelSmall) }
                 }
                 if (isUser) {
                     Text(message.content, style = MaterialTheme.typography.bodyLarge)
@@ -210,20 +219,9 @@ private fun ModalityPicker(
     SelectionChips(
         options = listOf<TherapyModality?>(null) + TherapyModality.entries,
         selected = selected,
-        label = { it?.let(::modalityLabel) ?: "Auto" },
+        label = { it?.label ?: "Auto" },
         onSelect = onSelect,
         modifier = modifier
     )
 }
 
-private fun modalityLabel(modality: TherapyModality): String = when (modality) {
-    TherapyModality.TALK -> "Talk"
-    TherapyModality.JOURNAL -> "Journal"
-    TherapyModality.ACTIVE_IMAGINATION -> "Active Imagination"
-    TherapyModality.ROLEPLAY -> "Roleplay"
-    TherapyModality.DREAM -> "Dream"
-    TherapyModality.GROUNDING -> "Grounding"
-    TherapyModality.IDENTITY -> "Identity"
-    TherapyModality.PURPOSE -> "Purpose"
-    TherapyModality.AUDIO -> "Audio"
-}

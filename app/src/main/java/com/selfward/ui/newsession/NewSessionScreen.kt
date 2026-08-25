@@ -136,7 +136,7 @@ fun NewSessionScreen(
                     SelectionChips(
                         options = TherapyModality.entries,
                         selected = state.modality,
-                        label = { modalityLabel(it) },
+                        label = { it.label },
                         onSelect = viewModel::setModality
                     )
                     val description = TherapyConfig.MODALITY_DESCRIPTIONS[
@@ -174,14 +174,3 @@ private fun Field(title: String, content: @Composable () -> Unit) {
     }
 }
 
-private fun modalityLabel(modality: TherapyModality): String = when (modality) {
-    TherapyModality.TALK -> "Talk"
-    TherapyModality.JOURNAL -> "Journal"
-    TherapyModality.ACTIVE_IMAGINATION -> "Active Imagination"
-    TherapyModality.ROLEPLAY -> "Roleplay"
-    TherapyModality.DREAM -> "Dream"
-    TherapyModality.GROUNDING -> "Grounding"
-    TherapyModality.IDENTITY -> "Identity"
-    TherapyModality.PURPOSE -> "Purpose"
-    TherapyModality.AUDIO -> "Audio"
-}

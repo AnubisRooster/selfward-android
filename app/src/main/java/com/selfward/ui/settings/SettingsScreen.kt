@@ -327,7 +327,7 @@ private fun OpenRouterModelSection(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        free.take(FREE_MODELS_SHOWN).forEach { candidate ->
+        free.forEach { candidate ->
             OpenRouterModelRow(
                 model = candidate,
                 isSelected = candidate.id == selected,
@@ -366,5 +366,3 @@ private fun OpenRouterModelRow(
     }
 }
 
-/** Enough to choose from without turning Settings into a catalogue browser. */
-private const val FREE_MODELS_SHOWN = 8

@@ -178,6 +178,7 @@ class ChatScreenTest {
         FakeIntakeStore(),
         FakeSecureSettings(),
         FakeCatalog(),
+        FakeProviderCatalog(),
         FakeUnusable()
     )
 
@@ -301,6 +302,18 @@ class ChatScreenTest {
             workingIds += modelId
             remembered.remove(modelId)
         }
+    }
+
+
+    /** Serves whatever a test hands it, for whichever provider is asked about. */
+    private class FakeProviderCatalog(
+        private val choices: List<com.selfward.core.catalog.ModelChoice> = emptyList()
+    ) : com.selfward.core.catalog.ProviderCatalog {
+        override suspend fun ranked(
+            provider: com.selfward.core.chat.Provider,
+            apiKey: String?,
+            force: Boolean
+        ) = choices
     }
 
 }

@@ -59,7 +59,7 @@ class SettingsScreenTest {
     private fun buildViewModel(
         secureSettings: FakeSecureSettings = FakeSecureSettings(),
         modelDownloader: FakeModelDownloader = FakeModelDownloader()
-    ) = SettingsViewModel(secureSettings, ModelSettings(secureSettings), modelDownloader, FakeEmbeddingModelDownloader())
+    ) = SettingsViewModel(secureSettings, ModelSettings(secureSettings), modelDownloader, FakeEmbeddingModelDownloader(), FakeOpenRouterCatalog())
 
     @Test
     fun showsStoredProviderAndModel() {
@@ -139,4 +139,13 @@ class SettingsScreenTest {
 
         assertTrue(vm.useLocalTts.value)
     }
+
+    /** No network in these tests; the catalogue is empty unless a test says otherwise. */
+    private class FakeOpenRouterCatalog(
+        private val models: List<com.selfward.core.catalog.OpenRouterModel> = emptyList()
+    ) : com.selfward.core.catalog.OpenRouterCatalog {
+        override suspend fun models(apiKey: String?, forceRefresh: Boolean) = models
+        override fun cached() = models
+    }
+
 }

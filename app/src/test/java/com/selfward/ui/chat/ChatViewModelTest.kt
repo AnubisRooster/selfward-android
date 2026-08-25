@@ -19,6 +19,11 @@ import com.selfward.core.voice.TtsRequest
 import com.selfward.data.settings.FakeSecureSettings
 import com.selfward.core.voice.TtsService
 import com.selfward.core.model.Message
+import com.selfward.core.voice.FakeSpeechSource
+import com.selfward.core.voice.ManualSilenceClock
+import com.selfward.core.voice.VoiceInput
+import com.selfward.core.voice.VoicePhase
+import com.selfward.config.PersonaKind
 import com.selfward.core.model.Persona
 import com.selfward.core.model.Role
 import com.selfward.core.graph.GraphEdge
@@ -120,9 +125,11 @@ class ChatViewModelTest {
     private class FakeLocalTtsService(private val fail: Boolean = false) :
         com.selfward.core.voice.LocalTtsService {
         var spokenText: String? = null
+        val spoken = mutableListOf<String>()
         override fun speak(text: String, onDone: () -> Unit) {
             if (fail) throw RuntimeException("tts engine unavailable")
             spokenText = text
+            spoken += text
             onDone()
         }
     }
@@ -251,12 +258,14 @@ class ChatViewModelTest {
         localLLMService: LocalLLMService = FakeLocalLLMService(),
         modelDownloader: ModelDownloader = FakeModelDownloader(),
         modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()),
-        localTts: FakeLocalTtsService = FakeLocalTtsService(),
+        localTts: com.selfward.core.voice.LocalTtsService = FakeLocalTtsService(),
         intakeStore: com.selfward.core.intake.IntakeStore = FakeIntakeStore(),
         secureSettings: FakeSecureSettings = FakeSecureSettings(),
         catalog: com.selfward.core.catalog.OpenRouterCatalog = FakeCatalog(),
         providerCatalog: com.selfward.core.catalog.ProviderCatalog = FakeProviderCatalog(),
-        unusable: com.selfward.core.catalog.UnusableModels = FakeUnusable()
+        unusable: com.selfward.core.catalog.UnusableModels = FakeUnusable(),
+        speech: FakeSpeechSource = FakeSpeechSource(),
+        clock: ManualSilenceClock = ManualSilenceClock()
     ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
             repo,
@@ -276,7 +285,9 @@ class ChatViewModelTest {
             secureSettings,
             catalog,
             providerCatalog,
-            unusable
+            unusable,
+            speech,
+            clock
         )
         return vm to repo
     }
@@ -889,4 +900,226 @@ class ChatViewModelTest {
         ) = choices
     }
 
+
+    // ---- Hands-free voice mode ----
+    //
+    // The loop's own sequencing is covered in VoiceConversationTest. These are
+    // the joins to the rest of the ViewModel, which is where a correct state
+    // machine can still be wired up wrongly.
+
+    private suspend fun startedVoice(
+        speech: FakeSpeechSource = FakeSpeechSource(),
+        localTts: FakeLocalTtsService = FakeLocalTtsService(),
+        clock: ManualSilenceClock = ManualSilenceClock(),
+        modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()).apply {
+            setUseLocalTts(true)
+        }
+    ): Triple<ChatViewModel, FakeSpeechSource, FakeLocalTtsService> {
+        val (vm, repo) = buildVm(
+            speech = speech, localTts = localTts, modelSettings = modelSettings, clock = clock
+        )
+        repo.createSession(Persona(PersonaKind.THERAPIST), "s")
+        vm.startVoice()
+        return Triple(vm, speech, localTts)
+    }
+
+    @Test
+    fun startingVoiceOpensTheMicrophone() = runTest {
+        val (vm, speech, _) = startedVoice()
+
+        assertEquals(VoicePhase.LISTENING, vm.voicePhase.value)
+        assertTrue(speech.isListening)
+    }
+
+    @Test
+    fun stoppingVoiceReleasesTheMicrophone() = runTest {
+        val (vm, speech, _) = startedVoice()
+
+        vm.stopVoice()
+
+        assertEquals(VoicePhase.IDLE, vm.voicePhase.value)
+        assertFalse(speech.isListening)
+    }
+
+    @Test
+    fun aDeviceWithNoRecogniserSaysSoInsteadOfSilentlyDoingNothing() = runTest {
+        val (vm, _) = buildVm(speech = FakeSpeechSource(unavailable = true))
+
+        vm.startVoice()
+
+        assertEquals(VoicePhase.IDLE, vm.voicePhase.value)
+        assertNotNull(vm.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun whatIsHeardIsShownWhileItIsBeingSaid() = runTest {
+        val (vm, speech, _) = startedVoice()
+
+        speech.emit(VoiceInput.Partial("I had a hard week"))
+
+        assertEquals("I had a hard week", vm.voiceHeard.value)
+    }
+
+    @Test
+    fun aSpokenTurnIsSentAndTheReplyIsSpokenBack() = runTest {
+        val (vm, speech, tts) = startedVoice()
+
+        speech.emit(VoiceInput.Partial("I had a hard week send it"))
+
+        assertEquals("reflection: I had a hard week", tts.spokenText)
+        assertEquals(VoicePhase.LISTENING, vm.voicePhase.value)
+    }
+
+    /**
+     * Read-aloud and voice mode both speak replies. With both switched on, the
+     * reply must not be said twice, over itself.
+     */
+    @Test
+    fun aReplyIsSpokenOnceWhenReadAloudIsAlsoSwitchedOn() = runTest {
+        val (vm, speech, tts) = startedVoice()
+        vm.setTtsEnabled(true)
+
+        speech.emit(VoiceInput.Partial("I had a hard week send it"))
+
+        assertEquals(listOf("reflection: I had a hard week"), tts.spoken)
+    }
+
+    /**
+     * The microphone must already be shut when the reply is spoken, or the app
+     * hears its own voice and answers itself.
+     */
+    @Test
+    fun theMicrophoneIsClosedWhileTheReplyIsBeingSpoken() = runTest {
+        val speech = FakeSpeechSource()
+        val listeningDuringSpeech = mutableListOf<Boolean>()
+        val observingTts = object : com.selfward.core.voice.LocalTtsService {
+            override fun speak(text: String, onDone: () -> Unit) {
+                listeningDuringSpeech += speech.isListening
+                onDone()
+            }
+        }
+        val (vm, repo) = buildVm(
+            speech = speech,
+            localTts = observingTts,
+            modelSettings = ModelSettings(FakeSecureSettings()).apply { setUseLocalTts(true) }
+        )
+        repo.createSession(Persona(PersonaKind.THERAPIST), "s")
+        vm.startVoice()
+
+        speech.emit(VoiceInput.Partial("I had a hard week send it"))
+
+        assertEquals(listOf(false), listeningDuringSpeech)
+    }
+
+    /**
+     * A failed reply has to release the loop. Left in "thinking", the mic stays
+     * shut and the person is talking to something that has stopped listening
+     * without telling them.
+     */
+    @Test
+    fun aFailedReplyEndsVoiceModeRatherThanLeavingItStuck() = runTest {
+        val speech = FakeSpeechSource()
+        val (vm, repo) = buildVm(
+            chatService = FailingChatService(),
+            speech = speech,
+            modelSettings = ModelSettings(FakeSecureSettings()).apply { setUseLocalTts(true) }
+        )
+        repo.createSession(Persona(PersonaKind.THERAPIST), "s")
+        vm.startVoice()
+
+        speech.emit(VoiceInput.Partial("I had a hard week send it"))
+
+        assertEquals(VoicePhase.IDLE, vm.voicePhase.value)
+        assertFalse(speech.isListening)
+        assertNotNull(vm.uiState.value.errorMessage)
+    }
+
+    /** A quiet room must not end voice mode. */
+    @Test
+    fun hearingNothingKeepsListeningRatherThanGivingUp() = runTest {
+        val (vm, speech, _) = startedVoice()
+
+        repeat(5) { speech.emit(VoiceInput.RecognizerFailed(heardNothing = true)) }
+
+        assertEquals(VoicePhase.LISTENING, vm.voicePhase.value)
+        assertTrue(speech.isListening)
+    }
+
+    @Test
+    fun aRunOfRecogniserFailuresStopsVoiceModeAndSaysWhy() = runTest {
+        val (vm, speech, _) = startedVoice()
+
+        repeat(3) { speech.emit(VoiceInput.RecognizerFailed(heardNothing = false)) }
+
+        assertEquals(VoicePhase.IDLE, vm.voicePhase.value)
+        assertNotNull(vm.uiState.value.errorMessage)
+    }
+
+    @Test
+    fun theSpokenTurnIsWrittenIntoTheConversationLikeAnyOtherMessage() = runTest {
+        val (vm, speech, _) = startedVoice()
+
+        speech.emit(VoiceInput.Partial("I had a hard week send it"))
+
+        assertTrue(vm.uiState.value.messages.any { it.content == "I had a hard week" })
+    }
+
+    // ---- Ending a turn on a pause ----
+
+    @Test
+    fun apauseEndsTheTurnAndSendsWhatWasSaid() = runTest {
+        val speech = FakeSpeechSource()
+        val clock = ManualSilenceClock()
+        val tts = FakeLocalTtsService()
+        val (vm, _, _) = startedVoice(speech = speech, localTts = tts, clock = clock)
+
+        speech.emit(VoiceInput.Partial("I had a hard week"))
+        clock.elapse()
+
+        assertTrue(vm.uiState.value.messages.any { it.content == "I had a hard week" })
+        assertEquals("reflection: I had a hard week", tts.spokenText)
+    }
+
+    @Test
+    fun theCountdownRunsForTheConfiguredNumberOfSeconds() = runTest {
+        val clock = ManualSilenceClock()
+        startedVoice(
+            clock = clock,
+            modelSettings = ModelSettings(FakeSecureSettings()).apply {
+                setUseLocalTts(true)
+                setVoiceSilenceSeconds(8.0)
+            }
+        )
+
+        assertEquals(8.0, clock.armedFor!!, 0.001)
+    }
+
+    /**
+     * A cough in a quiet room. Sending it would put noise in front of the model;
+     * ending voice mode would punish someone for shifting in their chair.
+     */
+    @Test
+    fun aBlipTooShortToBeSpeechIsNotSentAndVoiceModeStaysOn() = runTest {
+        val speech = FakeSpeechSource()
+        val clock = ManualSilenceClock()
+        val (vm, _, _) = startedVoice(speech = speech, clock = clock)
+
+        speech.emit(VoiceInput.Partial("a"))
+        clock.elapse()
+
+        assertTrue(vm.uiState.value.messages.none { it.content == "a" })
+        assertEquals(VoicePhase.LISTENING, vm.voicePhase.value)
+        assertTrue(clock.isArmed)
+    }
+
+    /** Switching voice mode off must not leave a countdown ticking. */
+    @Test
+    fun stoppingVoiceModeCancelsTheCountdown() = runTest {
+        val clock = ManualSilenceClock()
+        val (vm, _, _) = startedVoice(clock = clock)
+
+        vm.stopVoice()
+
+        assertFalse(clock.isArmed)
+    }
 }

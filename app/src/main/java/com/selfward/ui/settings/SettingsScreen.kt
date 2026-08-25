@@ -17,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
+import com.selfward.core.voice.VoiceTranscript
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -58,6 +60,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val downloadStatus by viewModel.downloadStatus.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val useLocalTts by viewModel.useLocalTts.collectAsState()
+    val voiceSilence by viewModel.voiceSilenceSeconds.collectAsState()
     val openRouterModels by viewModel.openRouterModels.collectAsState()
     val catalogLoading by viewModel.catalogLoading.collectAsState()
     val embeddingModel = viewModel.embeddingModel
@@ -205,6 +208,25 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 } else {
                     "Uses the cloud provider's voice (requires an API key and network)."
                 },
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        item {
+            Text(
+                "Hands-free pause: ${"%.0f".format(voiceSilence)}s",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Slider(
+                value = voiceSilence.toFloat(),
+                onValueChange = { viewModel.setVoiceSilenceSeconds(it.toDouble()) },
+                valueRange = VoiceTranscript.MIN_SILENCE_SECONDS.toFloat()..
+                    VoiceTranscript.MAX_SILENCE_SECONDS.toFloat(),
+                steps = 9,
+                modifier = Modifier.testTag("voiceSilenceSlider")
+            )
+            Text(
+                "How long a pause has to run before a hands-free turn is treated as " +
+                    "finished. Longer gives you more room to think mid-sentence.",
                 style = MaterialTheme.typography.bodySmall
             )
         }

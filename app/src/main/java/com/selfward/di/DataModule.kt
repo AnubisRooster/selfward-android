@@ -28,6 +28,8 @@ import com.selfward.core.dashboard.StatsRepository
 import com.selfward.core.repository.GraphRepository
 import com.selfward.core.repository.SessionRepository
 import com.selfward.core.voice.LocalTtsService
+import com.selfward.core.voice.SilenceClock
+import com.selfward.core.voice.SpeechSource
 import com.selfward.core.voice.TtsService
 import com.selfward.data.local.MIGRATION_1_2
 import com.selfward.data.local.MIGRATION_2_3
@@ -47,6 +49,8 @@ import com.selfward.data.repository.RoomStatsRepository
 import com.selfward.core.settings.SecureSettings
 import com.selfward.data.settings.EncryptedSecureSettings
 import com.selfward.data.voice.AndroidTtsService
+import com.selfward.data.voice.ContinuousSpeechRecognizer
+import com.selfward.data.voice.CoroutineSilenceClock
 import com.selfward.data.voice.CloudTtsService
 import dagger.Module
 import dagger.Provides
@@ -104,6 +108,15 @@ object DataModule {
     @Singleton
     fun provideLocalTtsService(@ApplicationContext context: Context): LocalTtsService =
         AndroidTtsService(context)
+
+    @Provides
+    @Singleton
+    fun provideSpeechSource(@ApplicationContext context: Context): SpeechSource =
+        ContinuousSpeechRecognizer(context)
+
+    @Provides
+    @Singleton
+    fun provideSilenceClock(): SilenceClock = CoroutineSilenceClock()
 
     @Provides
     @Singleton

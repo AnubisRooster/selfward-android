@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -53,7 +55,12 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
         }
 
         item {
-            Text("Notes", style = MaterialTheme.typography.headlineSmall)
+            // The tab is called Journal and the screen used to open on a heading
+            // called Notes, so the two never agreed. Journal is the screen;
+            // Notes and Dreams are what is on it.
+            Text("Journal", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(12.dp))
+            Text("Notes", style = MaterialTheme.typography.titleMedium)
             SelectionChips(
                 options = NoteType.entries,
                 selected = state.noteType,
@@ -90,7 +97,7 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
         }
 
         item {
-            Text("Dreams", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(top = 16.dp))
+            Text("Dreams", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
             Text(
                 "Write the dream as you remember it. Recurring images are picked out on the " +
                     "device as you type — no model needed.",

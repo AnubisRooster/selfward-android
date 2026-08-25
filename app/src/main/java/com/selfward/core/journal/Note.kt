@@ -1,10 +1,16 @@
 package com.selfward.core.journal
 
-/** The kinds of note iOS offers, in the same order its picker lists them. */
+/**
+ * The kinds of note iOS offers, in the same order its picker lists them.
+ *
+ * Constants are persisted by name via `NoteType.valueOf`, so they are fixed.
+ * [label] is free: JOURNAL reads as "Diary entry" because it sits inside a tab
+ * that is itself called Journal.
+ */
 enum class NoteType(val label: String) {
     REFLECTION("Reflection"),
     SESSION_NOTE("Session note"),
-    JOURNAL("Journal")
+    JOURNAL("Diary entry")
 }
 
 data class Note(

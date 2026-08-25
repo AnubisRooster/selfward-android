@@ -14,8 +14,10 @@ class ModelRankingTest {
         completion: String = "0",
         context: Int = 8_000,
         input: List<String> = listOf("text"),
-        output: List<String> = listOf("text")
-    ) = OpenRouterModel(id, id, prompt, completion, context, input, output)
+        output: List<String> = listOf("text"),
+        intelligence: Double? = null,
+        name: String = id
+    ) = OpenRouterModel(id, name, prompt, completion, context, input, output, intelligence)
 
     @Test
     fun bothPricesZeroMakesAModelFree() {
@@ -173,6 +175,97 @@ class ModelRankingTest {
         )
 
         assertEquals(listOf("vendor/ok"), ModelRanking.paidModels(all).map { it.id })
+    }
+
+    /**
+     * Ranking on context length picked the roomiest model, which on the live
+     * free list meant a 1M-token model over a measurably better 256k one.
+     * Measured intelligence is the closest thing to a quality signal the
+     * catalogue publishes, so it decides.
+     */
+    @Test
+    fun aBetterModelWinsOverARoomierOne() {
+        val roomy = model("v/roomy:free", context = 1_048_576, intelligence = 41.2)
+        val clever = model("v/clever:free", context = 256_000, intelligence = 52.6)
+
+        assertEquals(clever.id, ModelRanking.defaultFreeId(listOf(roomy, clever)))
+    }
+
+    /** Unmeasured is not the same as bad, so it sorts last rather than out. */
+    @Test
+    fun anUnbenchmarkedModelSortsBelowAMeasuredOneButIsStillOffered() {
+        val measured = model("v/measured:free", intelligence = 20.0)
+        val unknown = model("v/unknown:free", context = 999_999)
+
+        val ranked = ModelRanking.freeModels(listOf(unknown, measured))
+
+        assertEquals(listOf(measured.id, unknown.id), ranked.map { it.id })
+    }
+
+    @Test
+    fun contextBreaksTiesBetweenEquallyRatedModels() {
+        val small = model("v/small:free", context = 8_000, intelligence = 30.0)
+        val big = model("v/big:free", context = 128_000, intelligence = 30.0)
+
+        assertEquals(listOf(big.id, small.id), ModelRanking.freeModels(listOf(small, big)).map { it.id })
+    }
+
+    /**
+     * The free list carries a content-safety classifier and code models. They
+     * will answer, and none of them should be sitting across from someone
+     * describing a hard week.
+     */
+    @Test
+    fun modelsBuiltForOtherJobsAreNotOffered() {
+        val classifier = model("nvidia/nemotron-3.5-content-safety:free", intelligence = 99.0)
+        val coder = model("cohere/north-mini-code:free", intelligence = 98.0)
+        val chat = model("v/chat:free", intelligence = 10.0)
+
+        assertEquals(
+            listOf(chat.id),
+            ModelRanking.freeModels(listOf(classifier, coder, chat)).map { it.id }
+        )
+    }
+
+    /** A model that refused to serve must not be offered again. */
+    @Test
+    fun excludedModelsAreSkipped() {
+        val gated = model("v/gated:free", intelligence = 90.0)
+        val fine = model("v/fine:free", intelligence = 10.0)
+
+        assertEquals(fine.id, ModelRanking.defaultFreeId(listOf(gated, fine), setOf(gated.id)))
+    }
+
+    @Test
+    fun theNextModelAfterAFailureIsTheNextBestOne() {
+        val first = model("v/first:free", intelligence = 90.0)
+        val second = model("v/second:free", intelligence = 80.0)
+        val third = model("v/third:free", intelligence = 70.0)
+
+        val next = ModelRanking.nextFreeAfter(listOf(first, second, third), first.id)
+
+        assertEquals(second.id, next?.id)
+    }
+
+    @Test
+    fun theNextModelSkipsOnesAlreadyKnownBad() {
+        val first = model("v/first:free", intelligence = 90.0)
+        val second = model("v/second:free", intelligence = 80.0)
+        val third = model("v/third:free", intelligence = 70.0)
+
+        val next = ModelRanking.nextFreeAfter(
+            listOf(first, second, third), first.id, excluded = setOf(second.id)
+        )
+
+        assertEquals(third.id, next?.id)
+    }
+
+    /** When everything has refused, say so rather than looping. */
+    @Test
+    fun thereIsNoNextModelWhenAllAreExhausted() {
+        val only = model("v/only:free")
+
+        assertNull(ModelRanking.nextFreeAfter(listOf(only), only.id))
     }
 
     @Test

@@ -78,6 +78,55 @@ object PriceTiers {
         else -> "larger tier"
     }
 
+    /**
+     * Matches the date a vendor appends when it pins a snapshot:
+     * gpt-4.1-nano-2025-04-14, claude-3-5-haiku-20241022.
+     */
+    private val DATE_SUFFIX = Regex("""-(\d{4}-\d{2}-\d{2}|\d{8})$""")
+
+    /**
+     * The family an id belongs to, with any snapshot date or "latest" removed.
+     *
+     * gpt-4.1-nano, gpt-4.1-nano-2025-04-14 and claude-3-5-haiku-latest,
+     * claude-3-5-haiku-20241022 are each one model offered twice.
+     */
+    fun familyOf(id: String): String =
+        id.replace(DATE_SUFFIX, "").removeSuffix("-latest")
+
+    private fun isSnapshot(id: String) = DATE_SUFFIX.containsMatchIn(id)
+
+    /**
+     * One entry per model family, keeping whichever id is the most useful to
+     * pick.
+     *
+     * A vendor lists both a moving name and every pinned snapshot behind it, so
+     * a list of sixty-five is really a list of twenty said three times. The
+     * moving name is preferred, because a model chosen today should keep
+     * working when the snapshot behind it is retired.
+     *
+     * Where a family has no moving name — some models are only ever published
+     * dated — the newest snapshot is kept rather than the family dropped, since
+     * it is still a model the client can use. Order is otherwise preserved, so
+     * the cheapest-tier-first ranking survives.
+     */
+    fun collapseSnapshots(models: List<ModelChoice>): List<ModelChoice> {
+        val byFamily = LinkedHashMap<String, ModelChoice>()
+        for (model in models) {
+            val family = familyOf(model.id)
+            val held = byFamily[family]
+            byFamily[family] = when {
+                held == null -> model
+                // A moving name always wins over a pinned one.
+                isSnapshot(held.id) && !isSnapshot(model.id) -> model
+                !isSnapshot(held.id) -> held
+                // Two snapshots: the later date is the live one.
+                model.id > held.id -> model
+                else -> held
+            }
+        }
+        return byFamily.values.toList()
+    }
+
     /** The heading above the list, which must not claim more than is known. */
     fun headingFor(provider: Provider, count: Int): String = when (provider) {
         Provider.OPENROUTER -> "$count free models, best first"

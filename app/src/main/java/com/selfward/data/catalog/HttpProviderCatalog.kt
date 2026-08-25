@@ -112,6 +112,7 @@ class HttpProviderCatalog(
                 isFree = false
             )
         }.sortedWith(compareBy({ PriceTiers.rank(provider, it.id) }, { it.id }))
+            .let(PriceTiers::collapseSnapshots)
     }
 
     private fun kotlinx.serialization.json.JsonPrimitive.contentOrNull(): String? =

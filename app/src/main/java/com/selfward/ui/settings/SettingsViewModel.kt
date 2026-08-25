@@ -3,6 +3,10 @@ package com.selfward.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.selfward.core.ModelSettings
+import com.selfward.core.catalog.ModelRanking
+import com.selfward.core.catalog.OpenRouterCatalog
+import com.selfward.core.catalog.OpenRouterModel
+import com.selfward.core.catalog.ProviderDefaults
 import com.selfward.core.chat.Provider
 import com.selfward.core.embedding.EmbeddingModelCatalog
 import com.selfward.core.embedding.EmbeddingModelDownloader
@@ -29,7 +33,8 @@ class SettingsViewModel @Inject constructor(
     private val secureSettings: SecureSettings,
     private val modelSettings: ModelSettings,
     private val modelDownloader: ModelDownloader,
-    private val embeddingModelDownloader: EmbeddingModelDownloader
+    private val embeddingModelDownloader: EmbeddingModelDownloader,
+    private val openRouterCatalog: OpenRouterCatalog
 ) : ViewModel() {
 
     val provider = MutableStateFlow(secureSettings.provider)
@@ -50,8 +55,17 @@ class SettingsViewModel @Inject constructor(
 
     private val awaitedDownloads = mutableSetOf<String>()
 
+    /** OpenRouter's catalogue, free models first. Empty until it has been fetched. */
+    private val _openRouterModels = MutableStateFlow<List<OpenRouterModel>>(emptyList())
+    val openRouterModels = _openRouterModels.asStateFlow()
+
+    private val _catalogLoading = MutableStateFlow(false)
+    val catalogLoading = _catalogLoading.asStateFlow()
+
     init {
         modelSettings.initFromSettings()
+        _openRouterModels.value = ModelRanking.ranked(openRouterCatalog.cached())
+        if (secureSettings.provider == Provider.OPENROUTER) refreshOpenRouterModels()
         viewModelScope.launch {
             while (isActive) {
                 refreshDownloadState()
@@ -60,7 +74,48 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun setProvider(provider: Provider) { this.provider.value = provider }
+    /**
+     * Switching provider also moves the model, when the one on screen plainly
+     * belonged to the provider being left. A model id is not portable between
+     * them - OpenRouter wants a namespaced slug, Anthropic wants its own names -
+     * so carrying one across produced a model-not-found error from the API on
+     * the client's first message.
+     *
+     * A model that could plausibly belong to the new provider is left alone: it
+     * is more likely to be a deliberate choice than a leftover.
+     */
+    fun setProvider(provider: Provider) {
+        val previous = this.provider.value
+        this.provider.value = provider
+        if (previous != provider && ProviderDefaults.looksWrongFor(provider, model.value)) {
+            model.value = ProviderDefaults.modelFor(
+                provider,
+                openRouterFreeId = ModelRanking.bestFree(_openRouterModels.value)?.id
+            )
+        }
+        if (provider == Provider.OPENROUTER) refreshOpenRouterModels()
+    }
+
+    /**
+     * Fetches the catalogue and, if the model on screen is still the pinned
+     * fallback, moves it to the best free model actually on offer.
+     */
+    fun refreshOpenRouterModels(force: Boolean = false) {
+        if (_catalogLoading.value) return
+        viewModelScope.launch {
+            _catalogLoading.value = true
+            val fetched = runCatching {
+                openRouterCatalog.models(apiKey.value.takeIf { it.isNotBlank() }, force)
+            }.getOrDefault(emptyList())
+            if (fetched.isNotEmpty()) {
+                _openRouterModels.value = ModelRanking.ranked(fetched)
+                if (model.value == ModelRanking.PINNED_FREE_FALLBACK) {
+                    ModelRanking.bestFree(fetched)?.let { model.value = it.id }
+                }
+            }
+            _catalogLoading.value = false
+        }
+    }
     fun setApiKey(apiKey: String) { this.apiKey.value = apiKey }
     fun setModel(model: String) { this.model.value = model }
     fun setUseLocalModel(use: Boolean) = modelSettings.setUseLocalModel(use)

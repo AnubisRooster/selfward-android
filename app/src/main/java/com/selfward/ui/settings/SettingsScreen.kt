@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.selfward.config.TherapyConfig
 import com.selfward.core.safety.SafetyGuardrails
+import com.selfward.core.catalog.OpenRouterModel
 import com.selfward.core.chat.Provider
 import com.selfward.core.local.DownloadProgress
 import com.selfward.core.local.DownloadStatus
@@ -57,6 +58,8 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val downloadStatus by viewModel.downloadStatus.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val useLocalTts by viewModel.useLocalTts.collectAsState()
+    val openRouterModels by viewModel.openRouterModels.collectAsState()
+    val catalogLoading by viewModel.catalogLoading.collectAsState()
     val embeddingModel = viewModel.embeddingModel
 
     LazyColumn(
@@ -101,6 +104,18 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         item {
             OutlinedTextField(value = model, onValueChange = viewModel::setModel,
                 label = { Text("Model") }, modifier = Modifier.fillMaxWidth())
+        }
+
+        if (provider == Provider.OPENROUTER) {
+            item {
+                OpenRouterModelSection(
+                    models = openRouterModels,
+                    selected = model,
+                    loading = catalogLoading,
+                    onSelect = viewModel::setModel,
+                    onRefresh = { viewModel.refreshOpenRouterModels(force = true) }
+                )
+            }
         }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -264,3 +279,92 @@ private fun DownloadProgressAndError(status: DownloadStatus, progress: DownloadP
         )
     }
 }
+
+/**
+ * OpenRouter's catalogue, free models first.
+ *
+ * The model field above is still a free-text box, because OpenRouter carries
+ * hundreds of models and someone who knows the slug they want should be able to
+ * type it. This list exists so that nobody has to: picking a provider whose
+ * models are addressed by namespaced slug and being handed an empty box is how
+ * the previous version sent people to the API with an id it would reject.
+ */
+@Composable
+private fun OpenRouterModelSection(
+    models: List<OpenRouterModel>,
+    selected: String,
+    loading: Boolean,
+    onSelect: (String) -> Unit,
+    onRefresh: () -> Unit
+) {
+    val free = models.filter { it.isFree }
+    Column(Modifier.fillMaxWidth()) {
+        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Text(
+                if (free.isEmpty()) "Free models" else "Free models (${free.size})",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onRefresh, enabled = !loading) {
+                Text(if (loading) "Loading…" else "Refresh")
+            }
+        }
+
+        if (free.isEmpty()) {
+            Text(
+                if (loading) "Fetching the catalogue from OpenRouter…"
+                else "No catalogue yet. Tap Refresh — the list loads without a key, " +
+                    "and adding yours shows what your account can reach.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            return@Column
+        }
+
+        Text(
+            "Free models are rate-limited, and their providers may train on what is " +
+                "sent. Switch on an on-device model if nothing should leave the phone.",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        free.take(FREE_MODELS_SHOWN).forEach { candidate ->
+            OpenRouterModelRow(
+                model = candidate,
+                isSelected = candidate.id == selected,
+                onSelect = { onSelect(candidate.id) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun OpenRouterModelRow(
+    model: OpenRouterModel,
+    isSelected: Boolean,
+    onSelect: () -> Unit
+) {
+    Surface(
+        tonalElevation = if (isSelected) 4.dp else 1.dp,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable(onClick = onSelect)
+    ) {
+        Row(
+            Modifier.padding(10.dp),
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+        ) {
+            RadioButton(selected = isSelected, onClick = onSelect)
+            Column(Modifier.weight(1f)) {
+                Text(model.shortName, style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    listOfNotNull(
+                        model.vendor.takeIf { it.isNotEmpty() },
+                        model.contextLength.takeIf { it > 0 }?.let { "${it / 1000}k context" }
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
+/** Enough to choose from without turning Settings into a catalogue browser. */
+private const val FREE_MODELS_SHOWN = 8

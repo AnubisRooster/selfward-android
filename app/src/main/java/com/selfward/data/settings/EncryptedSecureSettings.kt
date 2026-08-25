@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.selfward.core.chat.ApiConfig
+import com.selfward.core.catalog.ProviderDefaults
 import com.selfward.core.chat.Provider
 import com.selfward.core.settings.SecureSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -38,8 +39,14 @@ class EncryptedSecureSettings @Inject constructor(
     override val apiKey: String?
         get() = prefs.getString(KEY_API_KEY, null)
 
+    /**
+     * Falls back per provider. A single default was handed to whichever
+     * provider was selected, so choosing OpenRouter or Anthropic and saving
+     * sent them an OpenAI model id and the first message failed.
+     */
     override val model: String
-        get() = prefs.getString(KEY_MODEL, "gpt-4o-mini") ?: "gpt-4o-mini"
+        get() = prefs.getString(KEY_MODEL, null)?.takeIf { it.isNotBlank() }
+            ?: ProviderDefaults.modelFor(provider)
 
     override var useLocalModel: Boolean
         get() = prefs.getBoolean(KEY_USE_LOCAL, false)

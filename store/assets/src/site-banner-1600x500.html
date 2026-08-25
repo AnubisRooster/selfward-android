@@ -1,22 +1,34 @@
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400&display=block">
 <style>
   html,body{margin:0;padding:0;background:#332450;overflow:hidden}
   svg{display:block}
 </style>
+<!--
+  Header ground for the marketing site.
+
+  No wordmark and no dominant mark on purpose: Google Sites draws the site name
+  top-left AND the page title centred over this image, then crops it to fill the
+  container. A centred mark collided with the title; a mark near the right edge
+  was cropped away. What survives both is a quiet ground with the glyph as a
+  low-contrast watermark, low and inboard of the crop.
+-->
 <svg width="1600" height="500" viewBox="0 0 1600 500" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#5F4B8B"/>
-      <stop offset="1" stop-color="#332450"/>
+      <stop offset="1" stop-color="#2E2145"/>
     </linearGradient>
   </defs>
-  <rect width="1600" height="500" fill="url(#g1)"/>
-  <circle cx="1385" cy="90" r="250" fill="#FFFFFF" opacity=".045"/>
-  <circle cx="215" cy="430" r="185" fill="#FFFFFF" opacity=".04"/>
-  <g transform="translate(672,86) scale(2.45)" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round">
-    <path d="M44,30 a26,26 0 0 0 0,48"/>
-    <path d="M64,78 a26,26 0 0 0 0,-48"/>
+  <rect width="1600" height="500" fill="url(#g)"/>
+  <circle cx="235" cy="120" r="270" fill="#FFFFFF" opacity=".045"/>
+  <circle cx="1395" cy="440" r="235" fill="#FFFFFF" opacity=".035"/>
+  <circle cx="880" cy="500" r="180" fill="#FFFFFF" opacity=".025"/>
+
+  <g opacity=".22">
+    <g transform="translate(1108,306) scale(1.28)" fill="none" stroke="#FFFFFF"
+       stroke-width="8" stroke-linecap="round">
+      <path d="M44,30 a26,26 0 0 0 0,48"/>
+      <path d="M64,78 a26,26 0 0 0 0,-48"/>
+    </g>
+    <circle cx="1177.1" cy="375.1" r="6.4" fill="#FFFFFF"/>
   </g>
-  <circle cx="804.3" cy="218.3" r="12.25" fill="#FFFFFF"/>
-  
 </svg>

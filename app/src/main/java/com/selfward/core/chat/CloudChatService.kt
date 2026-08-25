@@ -60,25 +60,60 @@ class CloudChatService(
     ) {
         val channel = response.bodyAsChannel()
         val eventLines = mutableListOf<String>()
+        // Kept so a body that turned out not to be a stream can be read as the
+        // error it usually is.
+        val everything = StringBuilder()
+        var sawEvent = false
+
         while (true) {
             val line = channel.readUTF8Line()
             if (line == null) {
                 // A last event the server didn't terminate with a blank line.
-                flushEvent(eventLines, isAnthropic)
+                if (flushEvent(eventLines, isAnthropic)) sawEvent = true
                 break
             }
-            if (line.isEmpty()) flushEvent(eventLines, isAnthropic) else eventLines += line
+            everything.append(line).append('\n')
+            if (line.isEmpty()) {
+                if (flushEvent(eventLines, isAnthropic)) sawEvent = true
+            } else {
+                eventLines += line
+            }
         }
+
+        if (!sawEvent) reportNonStreamBody(everything.toString(), isAnthropic)
     }
 
+    /**
+     * Reads a body that arrived with no SSE events in it.
+     *
+     * Providers answer a streaming request with 200 and a plain JSON error when
+     * the request was accepted but the model will not serve it — OpenRouter does
+     * this for models gated to particular apps, and for rate limits. The status
+     * check passes and there is not a single `data:` line to parse, so without
+     * this the client is told the model sent nothing back, and the provider's
+     * own explanation is discarded on the way past.
+     */
+    private fun reportNonStreamBody(body: String, isAnthropic: Boolean) {
+        val trimmed = body.trim()
+        if (trimmed.isEmpty()) return
+        val error = if (isAnthropic) {
+            AnthropicProtocol.parseStreamError(trimmed)
+        } else {
+            ChatProtocol.parseStreamError(trimmed)
+        }
+        if (error != null) throw ChatServiceException("Chat request failed: $error")
+    }
+
+    /** @return true when the lines held a real SSE event, parsed or terminating. */
     private suspend fun FlowCollector<String>.flushEvent(
         eventLines: MutableList<String>,
         isAnthropic: Boolean
-    ) {
-        if (eventLines.isEmpty()) return
+    ): Boolean {
+        if (eventLines.isEmpty()) return false
         val raw = eventLines.joinToString("\n")
+        val wasSse = eventLines.any { it.startsWith("data:") }
         eventLines.clear()
-        val payload = SseParser.parseEvent(raw) ?: return
+        val payload = SseParser.parseEvent(raw) ?: return wasSse
 
         val error = if (isAnthropic) {
             AnthropicProtocol.parseStreamError(payload)
@@ -93,6 +128,7 @@ class CloudChatService(
             ChatProtocol.parseStreamDelta(payload)
         }
         if (!delta.isNullOrEmpty()) emit(delta)
+        return true
     }
 
     private suspend fun checkSuccess(response: HttpResponse) {

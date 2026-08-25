@@ -15,14 +15,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
+import com.selfward.data.export.share
+import com.selfward.ui.components.ExportMenu
+import com.selfward.ui.components.ExportOption
 import java.text.DateFormat
 import java.util.Date
 
@@ -33,12 +38,36 @@ import java.util.Date
 @Composable
 fun NarrativeScreen(viewModel: NarrativeViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsState()
+    val exported by viewModel.exported.collectAsState()
+    val context = LocalContext.current
+
+    // Offered once per export. Clearing it immediately means returning from the
+    // share sheet does not re-open it.
+    LaunchedEffect(exported) {
+        exported?.let {
+            context.share(it)
+            viewModel.exportHandled()
+        }
+    }
 
     Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Narrative", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
             if (state.building) {
                 CircularProgressIndicator(modifier = Modifier.padding(end = 12.dp))
+            }
+            if (!state.document.isEmpty) {
+                ExportMenu(
+                    enabled = !state.exporting,
+                    options = listOf(
+                        ExportOption("Markdown") {
+                            viewModel.export(NarrativeViewModel.NarrativeFormat.MARKDOWN)
+                        },
+                        ExportOption("PDF") {
+                            viewModel.export(NarrativeViewModel.NarrativeFormat.PDF)
+                        }
+                    )
+                )
             }
             Button(
                 onClick = viewModel::regenerate,

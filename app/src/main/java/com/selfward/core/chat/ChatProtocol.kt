@@ -17,8 +17,28 @@ internal object ChatProtocol {
     @Serializable
     data class ReqMessage(val role: String, val content: String)
 
+    /**
+     * [stream] carries no default on purpose.
+     *
+     * It had one, and kotlinx.serialization omits any value equal to its
+     * default, so "stream" was never written into the body at all. Every
+     * request the app has ever sent asked for an ordinary completion while the
+     * client parsed the reply as an event stream — no `data:` lines, no deltas,
+     * and the client was told the model sent nothing back. Without a default
+     * the field cannot go missing again.
+     */
     @Serializable
-    data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean = true)
+    data class ChatRequest(val model: String, val messages: List<ReqMessage>, val stream: Boolean)
+
+    // Non-streaming reply shape, for the fallback path.
+    @Serializable
+    data class WholeMessage(val content: String? = null)
+
+    @Serializable
+    data class WholeChoice(val message: WholeMessage = WholeMessage())
+
+    @Serializable
+    data class WholeResponse(val choices: List<WholeChoice> = emptyList())
 
     @Serializable
     data class StreamDelta(val content: String? = null)
@@ -42,11 +62,22 @@ internal object ChatProtocol {
     @Serializable
     data class ErrorEnvelope(val error: ApiError? = null)
 
-    fun buildRequest(messages: List<Message>, model: String): ChatRequest =
+    fun buildRequest(messages: List<Message>, model: String, stream: Boolean = true): ChatRequest =
         ChatRequest(
             model = model,
-            messages = messages.map { ReqMessage(it.role.name.lowercase(), it.content) }
+            messages = messages.map { ReqMessage(it.role.name.lowercase(), it.content) },
+            stream = stream
         )
+
+    /** The whole reply from a non-streaming response. */
+    fun parseWholeReply(body: String): String? =
+        runCatching { json.decodeFromString<WholeResponse>(body) }
+            .getOrNull()
+            ?.choices
+            ?.firstOrNull()
+            ?.message
+            ?.content
+            ?.takeIf { it.isNotBlank() }
 
     /** The incremental text (if any) carried by one `data:` payload of a streaming response. */
     fun parseStreamDelta(payload: String): String? =

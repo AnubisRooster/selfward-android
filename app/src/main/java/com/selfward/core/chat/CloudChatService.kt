@@ -3,8 +3,10 @@ package com.selfward.core.chat
 import com.selfward.core.model.Message
 import com.selfward.core.settings.SecureSettings
 import io.ktor.client.HttpClient
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.header
+import io.ktor.client.request.post
 import io.ktor.client.request.preparePost
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -19,6 +21,20 @@ import kotlinx.coroutines.flow.FlowCollector
 import kotlinx.coroutines.flow.flow
 
 private const val ANTHROPIC_VERSION = "2023-06-01"
+
+/**
+ * How this app identifies itself to OpenRouter.
+ *
+ * OpenRouter attributes requests to an app by these headers, and its own
+ * refusal for a gated model says to plug it into "an app listed on
+ * openrouter.ai/apps" - which is this identity. The iOS app has always sent a
+ * referer and Android never did, which is one of the two differences between a
+ * request that works there and the same request failing here.
+ */
+private const val APP_REFERER = "https://sites.google.com/view/selfward"
+private const val APP_TITLE = "Selfward"
+
+private const val HTTP_TOO_MANY_REQUESTS = 429
 
 class CloudChatService(
     private val client: HttpClient,
@@ -40,6 +56,7 @@ class CloudChatService(
         } else {
             client.preparePost(config.baseUrl.trimEnd('/') + "/chat/completions") {
                 bearerAuth(config.apiKey)
+                identifyApp(config.provider)
                 contentType(ContentType.Application.Json)
                 setBody(ChatProtocol.buildRequest(messages, config.model))
             }
@@ -48,10 +65,48 @@ class CloudChatService(
         // execute { } holds the connection open and hands back a live body channel.
         // The plain post() overload saves the whole body to a ByteArray before it
         // returns, which would collapse the stream into one delayed burst.
-        statement.execute { response ->
-            checkSuccess(response)
-            emitDeltas(response, isAnthropic)
+        val streamed = runCatching {
+            statement.execute { response ->
+                checkSuccess(response)
+                emitDeltas(response, isAnthropic)
+            }
         }
+
+        val failure = streamed.exceptionOrNull() ?: return@flow
+        if (isAnthropic || !worthRetryingWithoutStreaming(failure)) throw failure
+
+        // Not every model behind OpenRouter serves a streaming request, and the
+        // catalogue does not say which. The iOS app has never streamed at all -
+        // it asks for the whole reply and gets one - so a model that refuses to
+        // stream here is one that answers perfectly well there. Ask again the
+        // way iOS does before giving up.
+        emit(wholeReply(config, messages) ?: throw failure)
+    }
+
+    /**
+     * A rate limit means the account is over its allowance right now, and asking
+     * again immediately spends another request against it for nothing. Anything
+     * else is worth one attempt the way iOS asks.
+     */
+    private fun worthRetryingWithoutStreaming(failure: Throwable): Boolean =
+        failure is ChatServiceException && failure.status != HTTP_TOO_MANY_REQUESTS
+
+    private suspend fun wholeReply(config: ApiConfig, messages: List<Message>): String? {
+        val response = client.post(config.baseUrl.trimEnd('/') + "/chat/completions") {
+            bearerAuth(config.apiKey)
+            identifyApp(config.provider)
+            contentType(ContentType.Application.Json)
+            setBody(ChatProtocol.buildRequest(messages, config.model, stream = false))
+        }
+        val body = response.bodyAsText()
+        if (!response.status.isSuccess()) return null
+        return ChatProtocol.parseWholeReply(body)
+    }
+
+    private fun HttpRequestBuilder.identifyApp(provider: Provider) {
+        if (provider != Provider.OPENROUTER) return
+        header("HTTP-Referer", APP_REFERER)
+        header("X-Title", APP_TITLE)
     }
 
     private suspend fun FlowCollector<String>.emitDeltas(
@@ -140,8 +195,12 @@ class CloudChatService(
         // work again shortly.
         val explained = ChatProtocol.parseStreamError(body)
             ?: AnthropicProtocol.parseStreamError(body)
+        // The status travels with it: whether to retry without streaming turns
+        // on 429 versus anything else, and that is a poor thing to infer from
+        // words in a sentence.
         throw ChatServiceException(
-            explained ?: "Chat request failed (${response.status.value}): ${body.take(300)}"
+            explained ?: "Chat request failed (${response.status.value}): ${body.take(300)}",
+            status = response.status.value
         )
     }
 }

@@ -3,6 +3,8 @@ package com.selfward.core.chat
 import com.selfward.core.model.Message
 import com.selfward.core.model.Role
 import org.junit.Assert.*
+import kotlinx.serialization.json.Json
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AnthropicProtocolTest {
@@ -48,4 +50,32 @@ class AnthropicProtocolTest {
         val json = """{"type":"content_block_delta"}"""
         assertNull(AnthropicProtocol.parseStreamDelta(json))
     }
+
+    /**
+     * Anthropic requires max_tokens and rejects a request without it. Both it
+     * and the stream flag had default values, so kotlinx.serialization dropped
+     * them from every request the app sent.
+     */
+    @Test
+    fun theRequestCarriesTheFieldsAnthropicRequires() {
+        val body = Json.encodeToString(
+            AnthropicProtocol.ChatRequest.serializer(),
+            AnthropicProtocol.buildRequest(listOf(Message("1", Role.USER, "hi")), "claude-3-5-haiku-latest")
+        )
+
+        assertTrue("max_tokens missing from $body", body.contains("\"max_tokens\""))
+        assertTrue("stream flag missing from $body", body.contains("\"stream\":true"))
+    }
+
+    /** An absent system prompt should be absent, not sent as null. */
+    @Test
+    fun noSystemPromptMeansNoSystemField() {
+        val body = Json.encodeToString(
+            AnthropicProtocol.ChatRequest.serializer(),
+            AnthropicProtocol.buildRequest(listOf(Message("1", Role.USER, "hi")), "claude-3-5-haiku-latest")
+        )
+
+        assertTrue("system should be omitted, got $body", !body.contains("\"system\""))
+    }
+
 }

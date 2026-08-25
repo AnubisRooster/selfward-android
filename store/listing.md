@@ -66,22 +66,31 @@ a content-rating questionnaire answer noting therapeutic crisis-support messagin
 
 ## Assets
 
-Ready, in `store/assets/`:
-- `play-icon-512.png` — 512×512 store icon, matches the in-app launcher icon.
-  The mark is a glyph rather than a wordmark, so it survived the rename
-  unchanged.
+All in `store/assets/`, all carrying the Selfward name and the muted violet the
+app's theme actually uses (`#5F4B8B` to `#4A3269`, taken from the launcher icon
+so the artwork and the first screen match):
 
-Carries the old name and must be regenerated before submission:
-- `feature-graphic-1024x500.png` — has "therAIpist" set in the artwork.
-- `site-banner-1600x500.png` — same.
-- `screenshots/*.png` — recaptured against the renamed build, but recapture
-  again after any further UI work, since the onboarding screen shows the app
-  name in its heading.
+- `play-icon-512.png` — 512×512 store icon. The mark is a glyph rather than a
+  wordmark, so it survived the rename unchanged.
+- `feature-graphic-1024x500.png` — Play feature graphic. Leads with the claim
+  rather than the name: in a search result nobody knows the name yet, but they
+  do already distrust therapy apps with their data.
+- `site-banner-1600x500.png` — header for the marketing site. **Mark only, no
+  wordmark** — Google Sites draws the site title over this image, so a banner
+  containing "Selfward" would show the name twice.
+- `banner-1600x500.png` — the same treatment *with* the wordmark, for anywhere
+  nothing else supplies the name: README header, social preview cards.
+- `screenshots/*.png` — recaptured against the renamed build. Recapture again
+  after any further UI work, since onboarding shows the app name in its heading.
+
+Regenerating the artwork: the sources are HTML+SVG rendered through headless
+Chrome at exact pixel sizes, which is what gets Lato rendering correctly rather
+than falling back to a system face. All three use the real launcher geometry —
+two stroked crescents and a filled dot, lifted from `ic_launcher_foreground.xml`.
 
 Still needed:
-- **Privacy policy URL** — the policy is published on the marketing site; paste
-  that URL into the Play Console once the site is live. Note the current site
-  slug still reads `/view/theraipist` and should move before launch.
+- **Privacy policy URL** — https://sites.google.com/view/selfward/privacy.
+  Paste it into the Play Console at submission.
 
 The app icon is an adaptive icon (`ic_launcher_foreground` / `_background` /
 `_monochrome`); the monochrome layer supports Android 13+ themed icons.

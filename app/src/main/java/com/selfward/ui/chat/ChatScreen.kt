@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.selfward.data.voice.AndroidSttService
@@ -192,30 +193,43 @@ fun ChatScreen(
             }
         }
 
-            Row(
-                Modifier.fillMaxWidth().padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Actions first, then the field across the full width beneath them.
+            // Sharing one row left the box about half the screen and wrapped the
+            // placeholder onto two lines, which is a cramped place to write down
+            // something difficult.
+            Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Button(
+                        onClick = {
+                            viewModel.send(input)
+                            input = ""
+                        },
+                        enabled = !state.isSending && input.isNotBlank()
+                    ) { Text(if (state.isSending) "…" else "Send") }
+                    TextButton(onClick = {
+                        if (micGranted) stt.startListening(onFinal = { input = it })
+                        else micLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                    }) { Text("Speak") }
+                    TextButton(onClick = { viewModel.setTtsEnabled(!ttsEnabled) }) {
+                        Text(if (ttsEnabled) "Read: On" else "Read: Off")
+                    }
+                }
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .testTag("composer"),
+                    // Single line to start, growing as it is written into. A
+                    // fixed two-line box took height from the conversation, and
+                    // on a short screen the messages lost the argument entirely.
+                    maxLines = 6,
                     placeholder = { Text("Share what's on your mind…") }
                 )
-                Button(
-                    onClick = {
-                        viewModel.send(input)
-                        input = ""
-                    },
-                    enabled = !state.isSending
-                ) { Text(if (state.isSending) "…" else "Send") }
-                TextButton(onClick = {
-                    if (micGranted) stt.startListening(onFinal = { input = it })
-                    else micLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                }) { Text("Speak") }
-                TextButton(onClick = { viewModel.setTtsEnabled(!ttsEnabled) }) {
-                    Text(if (ttsEnabled) "Read: On" else "Read: Off")
-                }
             }
     }
 }

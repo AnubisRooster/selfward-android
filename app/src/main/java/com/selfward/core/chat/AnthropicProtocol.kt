@@ -57,8 +57,7 @@ internal object AnthropicProtocol {
 
     fun buildRequest(messages: List<Message>, model: String): ChatRequest {
         val system = messages.firstOrNull { it.role == Role.SYSTEM }?.content
-        val conversation = messages
-            .filter { it.role != Role.SYSTEM }
+        val conversation = alternating(messages.filter { it.role != Role.SYSTEM })
             .map { ReqMessage(it.role.name.lowercase(), it.content) }
         return ChatRequest(
             model = model,
@@ -67,6 +66,39 @@ internal object AnthropicProtocol {
             max_tokens = DEFAULT_MAX_TOKENS,
             stream = true
         )
+    }
+
+    /**
+     * Anthropic's messages must alternate between user and assistant, and must
+     * begin with the user. OpenAI-compatible endpoints accept whatever they are
+     * given, so a history that is fine for one provider is not automatically
+     * fine for the other.
+     *
+     * Runs of the same role do arise in ordinary use: the app writes the
+     * client's message down before it asks for a reply, so every failed send
+     * leaves a user turn with no answer after it. A few of those in a row is
+     * exactly what a session looks like after a spell of the provider being
+     * unreachable, and it would then be the switch to Anthropic that appeared
+     * to break.
+     *
+     * Consecutive turns from the same speaker are joined into one, which is
+     * also what they are: two things said in a row without an answer between
+     * them. Any assistant turn before the first user turn is dropped, since
+     * there is no request it could be answering.
+     */
+    internal fun alternating(messages: List<Message>): List<Message> {
+        val fromFirstUser = messages.dropWhile { it.role != Role.USER }
+        return fromFirstUser.fold(mutableListOf()) { acc, message ->
+            val previous = acc.lastOrNull()
+            if (previous != null && previous.role == message.role) {
+                acc[acc.lastIndex] = previous.copy(
+                    content = previous.content + "\n\n" + message.content
+                )
+            } else {
+                acc += message
+            }
+            acc
+        }
     }
 
     /** The incremental text (if any) carried by one `data:` payload of a streaming response. */

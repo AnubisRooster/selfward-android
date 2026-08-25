@@ -90,7 +90,11 @@ class HttpOpenRouterCatalog(
             inputModalities = architecture?.modalities("input_modalities") ?: listOf("text"),
             // Absent output modality is assumed to be text, matching every
             // ordinary chat entry; the odd ones out declare themselves.
-            outputModalities = architecture?.modalities("output_modalities") ?: listOf("text")
+            outputModalities = architecture?.modalities("output_modalities") ?: listOf("text"),
+            intelligenceIndex = this["benchmarks"]?.jsonObject
+                ?.get("artificial_analysis")?.jsonObject
+                ?.get("intelligence_index")?.jsonPrimitive
+                ?.contentOrNullSafe()?.toDoubleOrNull()
         )
     }
 

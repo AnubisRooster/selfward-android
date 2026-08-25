@@ -8,6 +8,13 @@ import com.selfward.core.PersonaHolder
 import com.selfward.core.GraphHolder
 import com.selfward.core.ModelSettings
 import com.selfward.core.chat.ChatService
+import com.selfward.core.catalog.ModelRanking
+import com.selfward.core.catalog.ModelRefusal
+import com.selfward.core.catalog.OpenRouterCatalog
+import com.selfward.core.catalog.OpenRouterModel
+import com.selfward.core.catalog.UnusableModels
+import com.selfward.core.chat.Provider
+import com.selfward.core.settings.SecureSettings
 import com.selfward.core.chat.ChatServiceException
 import com.selfward.core.chat.MissingApiKeyException
 import com.selfward.core.graph.InsightExtractor
@@ -69,10 +76,17 @@ class ChatViewModel @Inject constructor(
     private val localLLMService: LocalLLMService,
     private val modelDownloader: ModelDownloader,
     private val activeSessionHolder: ActiveSessionHolder,
-    private val intakeStore: IntakeStore
+    private val intakeStore: IntakeStore,
+    private val secureSettings: SecureSettings,
+    private val openRouterCatalog: OpenRouterCatalog,
+    private val unusableModels: UnusableModels
 ) : ViewModel() {
 
     private var sessionId: String? = null
+
+    /** Free models to choose between, best first. Refreshed each time the app opens. */
+    private val _freeModels = MutableStateFlow<List<OpenRouterModel>>(emptyList())
+    val freeModels = _freeModels.asStateFlow()
 
     /**
      * The persona the open session was started with. A session carries its own
@@ -89,6 +103,8 @@ class ChatViewModel @Inject constructor(
 
     init {
         activeSessionHolder.consumePendingOpen()?.let { id -> openSession(id) }
+        publishModelLabel()
+        refreshFreeModels()
     }
 
     fun setTtsEnabled(enabled: Boolean) {
@@ -113,15 +129,84 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { doSend(trimmed) }
                 .onFailure { e ->
-                    _uiState.update {
-                        it.copy(
-                            errorMessage = e.message ?: "Something went wrong sending your message.",
-                            needsApiKey = e is MissingApiKeyException
-                        )
+                    // A model that refuses to serve is the app's problem, not
+                    // the client's: it chose the model. Set it aside, move to
+                    // the next best free one, and send again before surfacing
+                    // anything.
+                    if (retryOnAnotherFreeModel(e)) {
+                        runCatching { doSend(trimmed) }
+                            .onFailure { second -> showError(second) }
+                    } else {
+                        showError(e)
                     }
                 }
             _uiState.update { it.copy(isSending = false) }
         }
+    }
+
+    /**
+     * Refetches the catalogue so the list is current every time the app opens.
+     *
+     * Forced rather than served from the day-old cache: free models appear and
+     * are withdrawn constantly, and a stale list is how someone ends up on a
+     * model that was retired last week. The cache still covers being offline.
+     */
+    fun refreshFreeModels() {
+        viewModelScope.launch {
+            val catalogue = runCatching {
+                openRouterCatalog.models(secureSettings.apiKey, forceRefresh = true)
+            }.getOrDefault(openRouterCatalog.cached())
+            _freeModels.value = ModelRanking.freeModels(catalogue, unusableModels.all())
+        }
+    }
+
+    /** Switches the model mid-conversation, from the chat screen. */
+    fun selectModel(modelId: String) {
+        secureSettings.save(Provider.OPENROUTER, secureSettings.apiKey.orEmpty(), modelId)
+        publishModelLabel()
+        _uiState.update { it.copy(modelNotice = null) }
+    }
+
+    fun dismissModelNotice() = _uiState.update { it.copy(modelNotice = null) }
+
+    private fun publishModelLabel() {
+        val label = if (modelSettings.useLocalModel.value) {
+            modelSettings.localModelId.value?.let { "On device · $it" } ?: "On device"
+        } else {
+            secureSettings.model.substringAfterLast('/')
+        }
+        _uiState.update { it.copy(modelLabel = label) }
+    }
+
+    private fun showError(e: Throwable) {
+        _uiState.update {
+            it.copy(
+                errorMessage = e.message ?: "Something went wrong sending your message.",
+                needsApiKey = e is MissingApiKeyException
+            )
+        }
+    }
+
+    /**
+     * @return true when the failure was a refusal by the selected OpenRouter
+     *   model and a different free one has been put in its place.
+     */
+    private suspend fun retryOnAnotherFreeModel(e: Throwable): Boolean {
+        if (secureSettings.provider != Provider.OPENROUTER) return false
+        if (!ModelRefusal.isPermanent(e.message)) return false
+
+        val failed = secureSettings.model
+        unusableModels.remember(failed, e.message.orEmpty())
+
+        val catalogue = runCatching { openRouterCatalog.models(secureSettings.apiKey) }
+            .getOrDefault(emptyList())
+        val next = ModelRanking.nextFreeAfter(catalogue, failed, unusableModels.all())
+            ?: return false
+
+        secureSettings.save(Provider.OPENROUTER, secureSettings.apiKey.orEmpty(), next.id)
+        publishModelLabel()
+        _uiState.update { it.copy(modelNotice = "${failed.substringAfterLast('/')} wouldn't take the request, so this is ${next.shortName} instead.") }
+        return true
     }
 
     private suspend fun doSend(trimmed: String) {

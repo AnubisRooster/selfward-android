@@ -4,7 +4,12 @@ import com.selfward.core.ActiveSessionHolder
 import com.selfward.core.PersonaHolder
 import com.selfward.core.GraphHolder
 import com.selfward.core.ModelSettings
+import com.selfward.core.catalog.OpenRouterModel
+import com.selfward.core.chat.Provider
 import com.selfward.core.chat.ChatService
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.Flow
+import com.selfward.core.chat.ChatServiceException
 import com.selfward.core.local.DownloadProgress
 import com.selfward.core.local.DownloadStatus
 import com.selfward.core.local.LocalLLMService
@@ -37,6 +42,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -246,7 +252,10 @@ class ChatViewModelTest {
         modelDownloader: ModelDownloader = FakeModelDownloader(),
         modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()),
         localTts: FakeLocalTtsService = FakeLocalTtsService(),
-        intakeStore: com.selfward.core.intake.IntakeStore = FakeIntakeStore()
+        intakeStore: com.selfward.core.intake.IntakeStore = FakeIntakeStore(),
+        secureSettings: FakeSecureSettings = FakeSecureSettings(),
+        catalog: com.selfward.core.catalog.OpenRouterCatalog = FakeCatalog(),
+        unusable: com.selfward.core.catalog.UnusableModels = FakeUnusable()
     ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
             repo,
@@ -262,7 +271,10 @@ class ChatViewModelTest {
             localLLMService,
             modelDownloader,
             activeSessionHolder,
-            intakeStore
+            intakeStore,
+            secureSettings,
+            catalog,
+            unusable
         )
         return vm to repo
     }
@@ -632,4 +644,152 @@ class ChatViewModelTest {
         vm2.send("hi again")
         assertTrue(vm2.uiState.value.reEntryMessage == null)
     }
+
+    /** No catalogue and no exclusions unless a test supplies them. */
+    private class FakeCatalog(
+        private val models: List<com.selfward.core.catalog.OpenRouterModel> = emptyList()
+    ) : com.selfward.core.catalog.OpenRouterCatalog {
+        override suspend fun models(apiKey: String?, forceRefresh: Boolean) = models
+        override fun cached() = models
+    }
+
+    private class FakeUnusable : com.selfward.core.catalog.UnusableModels {
+        val remembered = mutableMapOf<String, String>()
+        override fun all() = remembered.keys.toSet()
+        override fun remember(modelId: String, reason: String) { remembered[modelId] = reason }
+        override fun forget(modelId: String) { remembered.remove(modelId) }
+        override fun clear() = remembered.clear()
+    }
+
+
+    /** Refuses the first model it is asked for, then answers normally. */
+    private class RefusesFirstModel(
+        private val gatedModel: String,
+        private val settings: FakeSecureSettings
+    ) : ChatService {
+        var callCount = 0
+        override fun sendStreaming(messages: List<Message>): Flow<String> = flow {
+            callCount += 1
+            if (settings.model == gatedModel) {
+                throw ChatServiceException(
+                    "Chat request failed: $gatedModel is only available on agentic harnesses"
+                )
+            }
+            emit("hello from the fallback")
+        }
+    }
+
+
+    /**
+     * The live failure, end to end. OpenRouter gates some free models to
+     * registered apps, and nothing in the catalogue says which — so the app has
+     * to be refused, set that model aside, and carry on with the next best one
+     * rather than handing the client an error about a choice it made for them.
+     */
+    @Test
+    fun aRefusedModelIsReplacedAndTheMessageStillGetsThrough() = runTest {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENROUTER,
+            initialApiKey = "sk-or-test",
+            initialModel = "gated/one:free"
+        )
+        val catalogue = listOf(
+            OpenRouterModel("gated/one:free", "Gated", "0", "0", 1_000_000, intelligenceIndex = 90.0),
+            OpenRouterModel("good/two:free", "Good", "0", "0", 128_000, intelligenceIndex = 50.0)
+        )
+        val unusable = FakeUnusable()
+        val (vm, _) = buildVm(
+            chatService = RefusesFirstModel("gated/one:free", settings),
+            secureSettings = settings,
+            catalog = FakeCatalog(catalogue),
+            unusable = unusable
+        )
+
+        vm.send("hello")
+
+        assertEquals("the model should have been swapped", "good/two:free", settings.model)
+        assertTrue("the refusal should be remembered", "gated/one:free" in unusable.all())
+        assertNull("the client should not be shown the refusal", vm.uiState.value.errorMessage)
+        assertTrue(vm.uiState.value.messages.any { it.content.contains("fallback") })
+    }
+
+    @Test
+    fun theSwapIsExplainedRatherThanSilent() = runTest {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENROUTER,
+            initialApiKey = "sk-or-test",
+            initialModel = "gated/one:free"
+        )
+        val (vm, _) = buildVm(
+            chatService = RefusesFirstModel("gated/one:free", settings),
+            secureSettings = settings,
+            catalog = FakeCatalog(
+                listOf(
+                    OpenRouterModel("gated/one:free", "Gated", "0", "0", 1_000, intelligenceIndex = 90.0),
+                    OpenRouterModel("good/two:free", "Good", "0", "0", 1_000, intelligenceIndex = 50.0)
+                )
+            ),
+            unusable = FakeUnusable()
+        )
+
+        vm.send("hello")
+
+        val notice = vm.uiState.value.modelNotice
+        assertTrue("expected an explanation, got $notice", notice?.contains("two:free") == true)
+    }
+
+    /** A rate limit is not a reason to abandon a model for good. */
+    @Test
+    fun aTransientFailureDoesNotDiscardTheModel() = runTest {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENROUTER,
+            initialApiKey = "sk-or-test",
+            initialModel = "good/one:free"
+        )
+        val unusable = FakeUnusable()
+        val (vm, _) = buildVm(
+            chatService = object : ChatService {
+                override fun sendStreaming(messages: List<Message>): Flow<String> =
+                    flow { throw ChatServiceException("Chat request failed: Rate limit exceeded") }
+            },
+            secureSettings = settings,
+            catalog = FakeCatalog(
+                listOf(OpenRouterModel("other/two:free", "Other", "0", "0", 1_000))
+            ),
+            unusable = unusable
+        )
+
+        vm.send("hello")
+
+        assertEquals("good/one:free", settings.model)
+        assertTrue(unusable.all().isEmpty())
+        assertTrue(vm.uiState.value.errorMessage!!.contains("Rate limit"))
+    }
+
+    /** Other providers must not be second-guessed by OpenRouter's rules. */
+    @Test
+    fun anotherProvidersFailureIsLeftAlone() = runTest {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENAI,
+            initialApiKey = "sk-test",
+            initialModel = "gpt-4o-mini"
+        )
+        val unusable = FakeUnusable()
+        val (vm, _) = buildVm(
+            chatService = object : ChatService {
+                override fun sendStreaming(messages: List<Message>): Flow<String> =
+                    flow { throw ChatServiceException("model not found") }
+            },
+            secureSettings = settings,
+            catalog = FakeCatalog(),
+            unusable = unusable
+        )
+
+        vm.send("hello")
+
+        assertEquals("gpt-4o-mini", settings.model)
+        assertTrue(unusable.all().isEmpty())
+        assertTrue(vm.uiState.value.errorMessage!!.contains("model not found"))
+    }
+
 }

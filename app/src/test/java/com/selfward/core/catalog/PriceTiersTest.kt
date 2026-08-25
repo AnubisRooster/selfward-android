@@ -89,4 +89,101 @@ class PriceTiersTest {
     fun theHeadingCountsWhatIsOnOffer() {
         assertTrue(PriceTiers.headingFor(Provider.OPENAI, 7).startsWith("7 "))
     }
+
+    private fun choice(id: String) = ModelChoice(id, id, "tier", false)
+
+    /**
+     * A vendor lists a moving name and every pinned snapshot behind it, so
+     * sixty-five entries are really twenty said three times.
+     */
+    @Test
+    fun snapshotsCollapseOntoTheirMovingName() {
+        val collapsed = PriceTiers.collapseSnapshots(
+            listOf(
+                choice("gpt-4.1-nano"),
+                choice("gpt-4.1-nano-2025-04-14"),
+                choice("gpt-5-nano"),
+                choice("gpt-5-nano-2025-08-07")
+            )
+        )
+
+        assertEquals(listOf("gpt-4.1-nano", "gpt-5-nano"), collapsed.map { it.id })
+    }
+
+    /** Anthropic's moving name is "-latest" rather than the bare id. */
+    @Test
+    fun anthropicsLatestAliasIsTheOneKept() {
+        val collapsed = PriceTiers.collapseSnapshots(
+            listOf(
+                choice("claude-3-5-haiku-20241022"),
+                choice("claude-3-5-haiku-latest")
+            )
+        )
+
+        assertEquals(listOf("claude-3-5-haiku-latest"), collapsed.map { it.id })
+    }
+
+    /**
+     * The moving name is preferred even when it is listed after the snapshot,
+     * because a model chosen today should keep working when the snapshot behind
+     * it is retired.
+     */
+    @Test
+    fun theMovingNameWinsWhicheverOrderTheyArrive() {
+        val snapshotFirst = PriceTiers.collapseSnapshots(
+            listOf(choice("gpt-4o-2024-08-06"), choice("gpt-4o"))
+        )
+
+        assertEquals(listOf("gpt-4o"), snapshotFirst.map { it.id })
+    }
+
+    /**
+     * Some models are only ever published dated. Dropping the family would hide
+     * a model the client can actually use.
+     */
+    @Test
+    fun aFamilyWithNoMovingNameKeepsItsNewestSnapshot() {
+        val collapsed = PriceTiers.collapseSnapshots(
+            listOf(
+                choice("vendor/pinned-2024-01-01"),
+                choice("vendor/pinned-2025-06-01")
+            )
+        )
+
+        assertEquals(listOf("vendor/pinned-2025-06-01"), collapsed.map { it.id })
+    }
+
+    /** Collapsing must not reshuffle the cheapest-tier-first ranking. */
+    @Test
+    fun theRankingSurvivesCollapsing() {
+        val collapsed = PriceTiers.collapseSnapshots(
+            listOf(
+                choice("gpt-4.1-nano"),
+                choice("gpt-4.1-nano-2025-04-14"),
+                choice("gpt-4o-mini"),
+                choice("gpt-4o")
+            )
+        )
+
+        assertEquals(listOf("gpt-4.1-nano", "gpt-4o-mini", "gpt-4o"), collapsed.map { it.id })
+    }
+
+    /** Unrelated models must not be merged just because names look similar. */
+    @Test
+    fun differentModelsAreNotCollapsedTogether() {
+        val collapsed = PriceTiers.collapseSnapshots(
+            listOf(choice("gpt-4o-mini"), choice("gpt-4o"), choice("gpt-4.1-nano"))
+        )
+
+        assertEquals(3, collapsed.size)
+    }
+
+    @Test
+    fun aFamilyIsTheIdWithoutItsDateOrLatest() {
+        assertEquals("gpt-4.1-nano", PriceTiers.familyOf("gpt-4.1-nano-2025-04-14"))
+        assertEquals("claude-3-5-haiku", PriceTiers.familyOf("claude-3-5-haiku-latest"))
+        assertEquals("claude-3-5-haiku", PriceTiers.familyOf("claude-3-5-haiku-20241022"))
+        assertEquals("gpt-4o", PriceTiers.familyOf("gpt-4o"))
+    }
+
 }

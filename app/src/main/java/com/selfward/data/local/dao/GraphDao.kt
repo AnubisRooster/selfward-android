@@ -7,6 +7,9 @@ import androidx.room.Query
 import com.selfward.data.local.entity.GraphEdgeEntity
 import com.selfward.data.local.entity.GraphNodeEntity
 
+/** A per-session count, used by the dashboard and the session list. */
+data class SessionCountRow(val sessionId: String, val total: Int)
+
 @Dao
 interface GraphDao {
 
@@ -28,4 +31,7 @@ interface GraphDao {
 
     @Query("SELECT * FROM graph_edges")
     suspend fun getAllEdges(): List<GraphEdgeEntity>
+
+    @Query("SELECT sessionId, COUNT(*) AS total FROM graph_nodes GROUP BY sessionId")
+    suspend fun countsBySession(): List<SessionCountRow>
 }

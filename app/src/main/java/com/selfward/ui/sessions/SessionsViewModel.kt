@@ -3,6 +3,9 @@ package com.selfward.ui.sessions
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.selfward.core.ActiveSessionHolder
+import com.selfward.core.dashboard.Dashboard
+import com.selfward.core.dashboard.SessionStats
+import com.selfward.core.dashboard.StatsRepository
 import com.selfward.core.repository.SessionRepository
 import com.selfward.core.repository.SessionSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SessionsViewModel @Inject constructor(
     private val sessionRepository: SessionRepository,
+    private val statsRepository: StatsRepository,
     private val activeSessionHolder: ActiveSessionHolder
 ) : ViewModel() {
 
@@ -26,14 +30,33 @@ class SessionsViewModel @Inject constructor(
     private val _showingArchive = MutableStateFlow(false)
     val showingArchive = _showingArchive.asStateFlow()
 
+    /** What each session amounts to, for the counts on its row. */
+    private val _stats = MutableStateFlow<Map<String, SessionStats>>(emptyMap())
+    val stats = _stats.asStateFlow()
+
     init {
         refresh()
     }
 
     fun refresh() {
         viewModelScope.launch {
-            _sessions.value = sessionRepository.listSessions()
-            _archived.value = sessionRepository.listArchivedSessions()
+            val active = sessionRepository.listSessions()
+            val archived = sessionRepository.listArchivedSessions()
+            _sessions.value = active
+            _archived.value = archived
+
+            // The list is shown from the values above whether or not this
+            // succeeds; counts are decoration on a row, not a reason to fail
+            // to show the row.
+            _stats.value = runCatching {
+                Dashboard.perSession(
+                    sessions = active + archived,
+                    messages = statsRepository.messageTallies(),
+                    nodes = statsRepository.nodeTallies(),
+                    notes = statsRepository.noteTallies(),
+                    dreams = statsRepository.dreamTallies()
+                )
+            }.getOrDefault(emptyMap())
         }
     }
 

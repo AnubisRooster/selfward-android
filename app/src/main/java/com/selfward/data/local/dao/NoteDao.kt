@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.selfward.data.local.dao.SessionCountRow
 import com.selfward.data.local.entity.NoteEntity
 
 @Dao
@@ -22,4 +23,7 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE sessionId = :sessionId")
     suspend fun deleteBySession(sessionId: String)
+
+    @Query("SELECT sessionId, COUNT(*) AS total FROM notes GROUP BY sessionId")
+    suspend fun countsBySession(): List<SessionCountRow>
 }

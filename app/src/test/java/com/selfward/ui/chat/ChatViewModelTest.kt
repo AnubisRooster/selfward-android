@@ -255,6 +255,7 @@ class ChatViewModelTest {
         intakeStore: com.selfward.core.intake.IntakeStore = FakeIntakeStore(),
         secureSettings: FakeSecureSettings = FakeSecureSettings(),
         catalog: com.selfward.core.catalog.OpenRouterCatalog = FakeCatalog(),
+        providerCatalog: com.selfward.core.catalog.ProviderCatalog = FakeProviderCatalog(),
         unusable: com.selfward.core.catalog.UnusableModels = FakeUnusable()
     ): Pair<ChatViewModel, FakeSessionRepository> {
         val vm = ChatViewModel(
@@ -274,6 +275,7 @@ class ChatViewModelTest {
             intakeStore,
             secureSettings,
             catalog,
+            providerCatalog,
             unusable
         )
         return vm to repo
@@ -821,15 +823,15 @@ class ChatViewModelTest {
                 }
             },
             secureSettings = settings,
-            catalog = FakeCatalog(
+            providerCatalog = FakeProviderCatalog(
                 listOf(
-                    OpenRouterModel("refuses/one:free", "One", "0", "0", 1_000, intelligenceIndex = 90.0),
-                    OpenRouterModel("answers/two:free", "Two", "0", "0", 1_000, intelligenceIndex = 50.0)
+                    com.selfward.core.catalog.ModelChoice("refuses/one:free", "One", "free", true),
+                    com.selfward.core.catalog.ModelChoice("answers/two:free", "Two", "free", true)
                 )
             ),
             unusable = unusable
         )
-        vm.refreshFreeModels()
+        vm.refreshModels()
 
         vm.checkWhichModelsWork()
 
@@ -861,18 +863,30 @@ class ChatViewModelTest {
                 }
             },
             secureSettings = settings,
-            catalog = FakeCatalog(
-                listOf(OpenRouterModel("a/one:free", "One", "0", "0", 1_000))
+            providerCatalog = FakeProviderCatalog(
+                listOf(com.selfward.core.catalog.ModelChoice("a/one:free", "One", "free", true))
             ),
             unusable = FakeUnusable()
         )
-        vm.refreshFreeModels()
+        vm.refreshModels()
 
         vm.checkWhichModelsWork()
 
         val notice = vm.uiState.value.modelNotice
         assertTrue("expected the setting to be named, got $notice",
             notice?.contains("openrouter.ai/settings/privacy") == true)
+    }
+
+
+    /** Serves whatever a test hands it, for whichever provider is asked about. */
+    private class FakeProviderCatalog(
+        private val choices: List<com.selfward.core.catalog.ModelChoice> = emptyList()
+    ) : com.selfward.core.catalog.ProviderCatalog {
+        override suspend fun ranked(
+            provider: com.selfward.core.chat.Provider,
+            apiKey: String?,
+            force: Boolean
+        ) = choices
     }
 
 }

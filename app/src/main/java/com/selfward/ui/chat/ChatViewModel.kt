@@ -8,9 +8,12 @@ import com.selfward.core.PersonaHolder
 import com.selfward.core.GraphHolder
 import com.selfward.core.ModelSettings
 import com.selfward.core.chat.ChatService
+import com.selfward.core.catalog.ModelChoice
 import com.selfward.core.catalog.ModelRanking
 import com.selfward.core.catalog.ModelRefusal
+import com.selfward.core.catalog.PriceTiers
 import com.selfward.core.catalog.OpenRouterCatalog
+import com.selfward.core.catalog.ProviderCatalog
 import com.selfward.core.catalog.OpenRouterModel
 import com.selfward.core.catalog.UnusableModels
 import com.selfward.core.chat.Provider
@@ -80,6 +83,7 @@ class ChatViewModel @Inject constructor(
     private val intakeStore: IntakeStore,
     private val secureSettings: SecureSettings,
     private val openRouterCatalog: OpenRouterCatalog,
+    private val providerCatalog: ProviderCatalog,
     private val unusableModels: UnusableModels
 ) : ViewModel() {
 
@@ -92,9 +96,17 @@ class ChatViewModel @Inject constructor(
     private val _probing = MutableStateFlow<String?>(null)
     val probing = _probing.asStateFlow()
 
-    /** Free models to choose between, best first. Refreshed each time the app opens. */
-    private val _freeModels = MutableStateFlow<List<OpenRouterModel>>(emptyList())
-    val freeModels = _freeModels.asStateFlow()
+    /**
+     * Models for the provider currently selected, cheapest first. Refreshed
+     * each time the app opens, because what a provider offers changes and a
+     * stale list offers something that is no longer there.
+     */
+    private val _models = MutableStateFlow<List<ModelChoice>>(emptyList())
+    val models = _models.asStateFlow()
+
+    /** The heading above that list, which differs by what the provider publishes. */
+    private val _modelsHeading = MutableStateFlow("")
+    val modelsHeading = _modelsHeading.asStateFlow()
 
     /**
      * The persona the open session was started with. A session carries its own
@@ -112,7 +124,7 @@ class ChatViewModel @Inject constructor(
     init {
         activeSessionHolder.consumePendingOpen()?.let { id -> openSession(id) }
         publishModelLabel()
-        refreshFreeModels()
+        refreshModels()
     }
 
     fun setTtsEnabled(enabled: Boolean) {
@@ -159,12 +171,13 @@ class ChatViewModel @Inject constructor(
      * are withdrawn constantly, and a stale list is how someone ends up on a
      * model that was retired last week. The cache still covers being offline.
      */
-    fun refreshFreeModels() {
+    fun refreshModels() {
         viewModelScope.launch {
-            val catalogue = runCatching {
-                openRouterCatalog.models(secureSettings.apiKey, forceRefresh = true)
-            }.getOrDefault(openRouterCatalog.cached())
-            _freeModels.value = ModelRanking.freeModels(catalogue, unusableModels.all())
+            val provider = secureSettings.provider
+            val choices = providerCatalog.ranked(provider, secureSettings.apiKey, force = true)
+            _models.value = choices
+            _modelsHeading.value = PriceTiers.headingFor(provider, choices.size)
+            publishModelLabel()
         }
     }
 
@@ -183,9 +196,10 @@ class ChatViewModel @Inject constructor(
             val results = mutableMapOf<String, String?>()
             var firstWorking: String? = null
 
-            for (candidate in _freeModels.value) {
-                _probing.value = candidate.shortName
-                secureSettings.save(Provider.OPENROUTER, secureSettings.apiKey.orEmpty(), candidate.id)
+            val provider = secureSettings.provider
+            for (candidate in _models.value) {
+                _probing.value = candidate.name
+                secureSettings.save(provider, secureSettings.apiKey.orEmpty(), candidate.id)
                 // firstOrNull, not first: a model that answers 200 with an empty
                 // stream is a failure to report, not a NoSuchElementException to
                 // show the client.
@@ -214,7 +228,7 @@ class ChatViewModel @Inject constructor(
 
             // Land on something that answered, or put back what was there.
             secureSettings.save(
-                Provider.OPENROUTER,
+                provider,
                 secureSettings.apiKey.orEmpty(),
                 firstWorking ?: original
             )
@@ -262,7 +276,10 @@ class ChatViewModel @Inject constructor(
 
     /** Switches the model mid-conversation, from the chat screen. */
     fun selectModel(modelId: String) {
-        secureSettings.save(Provider.OPENROUTER, secureSettings.apiKey.orEmpty(), modelId)
+        // Saved against whichever provider is selected, not always OpenRouter:
+        // the list is per provider now, and writing an OpenAI model into the
+        // OpenRouter slot would put an unusable id in front of the next message.
+        secureSettings.save(secureSettings.provider, secureSettings.apiKey.orEmpty(), modelId)
         publishModelLabel()
         _uiState.update { it.copy(modelNotice = null) }
     }

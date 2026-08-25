@@ -42,7 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
-import com.selfward.core.catalog.OpenRouterModel
+import com.selfward.core.catalog.ModelChoice
 import com.selfward.core.modality.TherapyModality
 import com.selfward.ui.components.SelectionChips
 import com.selfward.core.model.Message
@@ -56,7 +56,8 @@ fun ChatScreen(
 ) {
         val state by viewModel.uiState.collectAsState()
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
-    val freeModels by viewModel.freeModels.collectAsState()
+    val models by viewModel.models.collectAsState()
+    val modelsHeading by viewModel.modelsHeading.collectAsState()
     val probeResults by viewModel.probeResults.collectAsState()
     val probing by viewModel.probing.collectAsState()
     var input by remember { mutableStateOf("") }
@@ -103,11 +104,12 @@ fun ChatScreen(
         // reply lands badly.
         ModelBar(
             label = state.modelLabel,
-            models = freeModels,
+            models = models,
+            heading = modelsHeading,
             probeResults = probeResults,
             probing = probing,
             onSelect = viewModel::selectModel,
-            onRefresh = viewModel::refreshFreeModels,
+            onRefresh = viewModel::refreshModels,
             onCheck = viewModel::checkWhichModelsWork
         )
 
@@ -287,7 +289,8 @@ private fun ModalityPicker(
 @Composable
 private fun ModelBar(
     label: String?,
-    models: List<OpenRouterModel>,
+    models: List<ModelChoice>,
+    heading: String,
     probeResults: Map<String, String?>,
     probing: String?,
     onSelect: (String) -> Unit,
@@ -317,7 +320,7 @@ private fun ModelBar(
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (probing != null) "Checking $probing…" else "${models.size} free models, best first",
+                if (probing != null) "Checking $probing…" else heading,
                 style = MaterialTheme.typography.labelSmall,
                 modifier = Modifier.weight(1f)
             )
@@ -351,7 +354,7 @@ private fun ModelBar(
 
 @Composable
 private fun ModelRow(
-    model: OpenRouterModel,
+    model: ModelChoice,
     result: String?,
     checked: Boolean,
     onSelect: () -> Unit
@@ -363,7 +366,7 @@ private fun ModelRow(
         Column(Modifier.padding(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    model.shortName,
+                    model.name,
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.weight(1f)
                 )
@@ -376,14 +379,7 @@ private fun ModelRow(
                     )
                 }
             }
-            Text(
-                listOfNotNull(
-                    model.vendor.takeIf { it.isNotEmpty() },
-                    model.intelligenceIndex?.let { "rated %.0f".format(it) },
-                    model.contextLength.takeIf { it > 0 }?.let { "${it / 1000}k" }
-                ).joinToString(" · "),
-                style = MaterialTheme.typography.labelSmall
-            )
+            Text(model.detail, style = MaterialTheme.typography.labelSmall)
             result?.let { reason ->
                 Text(
                     reason.take(140),

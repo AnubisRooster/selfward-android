@@ -146,4 +146,75 @@ class SettingsViewModelTest {
         override fun cached() = models
     }
 
+
+    /**
+     * The reason keys are per provider rather than per app: one shared key was
+     * kept when the selection changed, so an OpenAI key was handed to whichever
+     * provider was chosen next and sent to them on the first message.
+     */
+    @Test
+    fun switchingProviderDoesNotCarryTheOtherProvidersKey() {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENAI,
+            initialApiKey = "sk-openai-secret",
+            initialModel = "gpt-4o-mini"
+        )
+        val vm = buildVm(settings)
+
+        vm.setProvider(Provider.ANTHROPIC)
+
+        assertEquals("", vm.apiKey.value)
+    }
+
+    @Test
+    fun eachProviderKeepsItsOwnKey() {
+        val settings = FakeSecureSettings(initialProvider = Provider.OPENAI)
+        val vm = buildVm(settings)
+
+        vm.setApiKey("sk-openai")
+        vm.setModel("gpt-4o-mini")
+        vm.save()
+
+        vm.setProvider(Provider.ANTHROPIC)
+        vm.setApiKey("sk-ant")
+        vm.setModel("claude-3-5-haiku-latest")
+        vm.save()
+
+        assertEquals("sk-openai", settings.apiKeyFor(Provider.OPENAI))
+        assertEquals("sk-ant", settings.apiKeyFor(Provider.ANTHROPIC))
+    }
+
+    /** Coming back to a provider should find it as it was left. */
+    @Test
+    fun returningToAProviderRestoresItsKeyAndModel() {
+        val settings = FakeSecureSettings(initialProvider = Provider.OPENAI)
+        val vm = buildVm(settings)
+        vm.setApiKey("sk-openai")
+        vm.setModel("gpt-4o-mini")
+        vm.save()
+        vm.setProvider(Provider.ANTHROPIC)
+        vm.setApiKey("sk-ant")
+        vm.save()
+
+        vm.setProvider(Provider.OPENAI)
+
+        assertEquals("sk-openai", vm.apiKey.value)
+        assertEquals("gpt-4o-mini", vm.model.value)
+    }
+
+    /** A provider never set up starts empty rather than borrowing. */
+    @Test
+    fun anUnconfiguredProviderStartsWithNoKeyAndItsOwnDefaultModel() {
+        val settings = FakeSecureSettings(
+            initialProvider = Provider.OPENAI,
+            initialApiKey = "sk-openai"
+        )
+        val vm = buildVm(settings)
+
+        vm.setProvider(Provider.ANTHROPIC)
+
+        assertEquals("", vm.apiKey.value)
+        assertTrue(vm.model.value.startsWith("claude"))
+    }
+
 }

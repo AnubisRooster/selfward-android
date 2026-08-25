@@ -87,11 +87,20 @@ class SettingsViewModel @Inject constructor(
     fun setProvider(provider: Provider) {
         val previous = this.provider.value
         this.provider.value = provider
-        if (previous != provider && ProviderDefaults.looksWrongFor(provider, model.value)) {
-            model.value = ProviderDefaults.modelFor(
-                provider,
-                openRouterFreeId = ModelRanking.bestFree(_openRouterModels.value)?.id
-            )
+        if (previous != provider) {
+            // Each provider keeps its own key and model. Carrying the previous
+            // one's key across was how an OpenAI key ended up being sent to
+            // whichever provider was chosen next.
+            apiKey.value = secureSettings.apiKeyFor(provider).orEmpty()
+            val stored = secureSettings.modelFor(provider)
+            model.value = if (provider == Provider.OPENROUTER && stored == ModelRanking.PINNED_FREE_FALLBACK) {
+                ProviderDefaults.modelFor(
+                    provider,
+                    openRouterFreeId = ModelRanking.bestFree(_openRouterModels.value)?.id
+                )
+            } else {
+                stored
+            }
         }
         if (provider == Provider.OPENROUTER) refreshOpenRouterModels()
     }

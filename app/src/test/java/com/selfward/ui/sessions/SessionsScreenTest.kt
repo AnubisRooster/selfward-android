@@ -5,9 +5,13 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.selfward.core.ActiveSessionHolder
+import com.selfward.core.dashboard.MessageTally
+import com.selfward.core.dashboard.StatsRepository
+import com.selfward.core.dashboard.Tally
 import com.selfward.core.model.Message
 import com.selfward.core.model.Persona
 import com.selfward.core.repository.Session
@@ -26,6 +30,29 @@ class SessionsScreenTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    /** Counts for the badges under each session title. */
+    private class FakeStatsRepository(
+        private val messages: List<MessageTally> = emptyList(),
+        private val nodes: List<Tally> = emptyList(),
+        private val notes: List<Tally> = emptyList(),
+        private val dreams: List<Tally> = emptyList()
+    ) : StatsRepository {
+        override suspend fun messageTallies() = messages
+        override suspend fun modalityTallies(): Map<String, Int> = emptyMap()
+        override suspend fun nodeTallies() = nodes
+        override suspend fun noteTallies() = notes
+        override suspend fun dreamTallies() = dreams
+    }
+
+    /** Stands in for a database that cannot be read right now. */
+    private class FailingStatsRepository : StatsRepository {
+        override suspend fun messageTallies(): List<MessageTally> = error("no database")
+        override suspend fun modalityTallies(): Map<String, Int> = error("no database")
+        override suspend fun nodeTallies(): List<Tally> = error("no database")
+        override suspend fun noteTallies(): List<Tally> = error("no database")
+        override suspend fun dreamTallies(): List<Tally> = error("no database")
+    }
 
     private class FakeSessionRepository(
         initial: List<SessionSummary> = listOf(SessionSummary("s1", "First session", 100))
@@ -58,7 +85,7 @@ class SessionsScreenTest {
 
     @Test
     fun showsEmptyStateWhenNoSessions() {
-        val vm = SessionsViewModel(FakeSessionRepository(emptyList()), ActiveSessionHolder())
+        val vm = SessionsViewModel(FakeSessionRepository(emptyList()), FakeStatsRepository(), ActiveSessionHolder())
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
@@ -69,7 +96,7 @@ class SessionsScreenTest {
     @Test
     fun listsSessionsAndOpensOnTap() {
         val repo = FakeSessionRepository()
-        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
         var opened = false
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = { opened = true }, onNewSession = {})
@@ -83,7 +110,7 @@ class SessionsScreenTest {
     @Test
     fun archivingHidesTheSessionWithoutDeletingIt() {
         val repo = FakeSessionRepository()
-        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
@@ -98,7 +125,7 @@ class SessionsScreenTest {
     @Test
     fun anArchivedSessionCanBeRestored() {
         val repo = FakeSessionRepository()
-        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
@@ -114,7 +141,7 @@ class SessionsScreenTest {
     /** Permanent deletion is only reachable from the archive, never the main list. */
     @Test
     fun deleteIsNotOfferedOnTheActiveList() {
-        val vm = SessionsViewModel(FakeSessionRepository(), ActiveSessionHolder())
+        val vm = SessionsViewModel(FakeSessionRepository(), FakeStatsRepository(), ActiveSessionHolder())
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
@@ -125,7 +152,7 @@ class SessionsScreenTest {
     @Test
     fun deletingFromTheArchiveRemovesItForGood() {
         val repo = FakeSessionRepository()
-        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
         }
@@ -145,7 +172,7 @@ class SessionsScreenTest {
     @Test
     fun theListReloadsWhenTheScreenIsShown() {
         val repo = FakeSessionRepository(emptyList())
-        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
 
         // A session appears after the ViewModel was constructed, as happens when
         // one is created on another screen.
@@ -160,12 +187,75 @@ class SessionsScreenTest {
 
     @Test
     fun newSessionButtonInvokesCallback() {
-        val vm = SessionsViewModel(FakeSessionRepository(), ActiveSessionHolder())
+        val vm = SessionsViewModel(FakeSessionRepository(), FakeStatsRepository(), ActiveSessionHolder())
         var newSessionRequested = false
         composeRule.setContent {
             SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = { newSessionRequested = true })
         }
         composeRule.onNodeWithText("New session").performClick()
         assertTrue(newSessionRequested)
+    }
+
+    // MARK: - Row counts
+
+    @Test
+    fun aSessionRowShowsWhatItHoldsInIt() {
+        val repo = FakeSessionRepository()
+        val vm = SessionsViewModel(
+            repo,
+            FakeStatsRepository(
+                messages = listOf(MessageTally("s1", 12, 6)),
+                nodes = listOf(Tally("s1", 3)),
+                notes = listOf(Tally("s1", 1))
+            ),
+            ActiveSessionHolder()
+        )
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onNodeWithText("12 messages · 3 patterns · 1 note").assertIsDisplayed()
+    }
+
+    /**
+     * A row reading "0 messages · 0 notes" is a row telling someone what they
+     * have not done, on the screen they open the app to.
+     */
+    @Test
+    fun anEmptySessionRowShowsNoCountsAtAll() {
+        val repo = FakeSessionRepository()
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onAllNodesWithTag("sessionBadges").assertCountEquals(0)
+    }
+
+    @Test
+    fun oneOfSomethingIsNotWrittenAsAPlural() {
+        val repo = FakeSessionRepository()
+        val vm = SessionsViewModel(
+            repo,
+            FakeStatsRepository(messages = listOf(MessageTally("s1", 1, 1))),
+            ActiveSessionHolder()
+        )
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onNodeWithText("1 message").assertIsDisplayed()
+    }
+
+    /** Counts must not stop the list itself from appearing. */
+    @Test
+    fun theListStillRendersWhenTheCountsCannotBeRead() {
+        val repo = FakeSessionRepository()
+        val vm = SessionsViewModel(repo, FailingStatsRepository(), ActiveSessionHolder())
+        composeRule.setContent {
+            SessionsScreen(viewModel = vm, onOpenSession = {}, onNewSession = {})
+        }
+
+        composeRule.onNodeWithText("First session").assertIsDisplayed()
     }
 }

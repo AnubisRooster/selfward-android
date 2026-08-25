@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.selfward.data.local.dao.SessionCountRow
 import com.selfward.data.local.entity.DreamEntity
 
 @Dao
@@ -25,4 +26,7 @@ interface DreamDao {
 
     @Query("DELETE FROM dreams WHERE sessionId = :sessionId")
     suspend fun deleteBySession(sessionId: String)
+
+    @Query("SELECT sessionId, COUNT(*) AS total FROM dreams GROUP BY sessionId")
+    suspend fun countsBySession(): List<SessionCountRow>
 }

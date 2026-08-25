@@ -24,6 +24,7 @@ import com.selfward.data.lock.PrefsLockoutStore
 import com.selfward.core.modality.ModalityRouter
 import com.selfward.core.prompt.TherapyPromptBuilder
 import com.selfward.core.safety.SafetyGuardrails
+import com.selfward.core.dashboard.StatsRepository
 import com.selfward.core.repository.GraphRepository
 import com.selfward.core.repository.SessionRepository
 import com.selfward.core.voice.LocalTtsService
@@ -42,6 +43,7 @@ import com.selfward.data.repository.RoomGraphRepository
 import com.selfward.data.narrative.RoomNarrativeStore
 import com.selfward.data.repository.RoomNoteRepository
 import com.selfward.data.repository.RoomSessionRepository
+import com.selfward.data.repository.RoomStatsRepository
 import com.selfward.core.settings.SecureSettings
 import com.selfward.data.settings.EncryptedSecureSettings
 import com.selfward.data.voice.AndroidTtsService
@@ -74,6 +76,11 @@ object DataModule {
     @Singleton
     fun provideGraphRepository(db: SelfwardDatabase): GraphRepository =
         RoomGraphRepository(db)
+
+    @Provides
+    @Singleton
+    fun provideStatsRepository(db: SelfwardDatabase): StatsRepository =
+        RoomStatsRepository(db)
 
     @Provides
     @Singleton

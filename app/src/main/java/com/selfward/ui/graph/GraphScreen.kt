@@ -32,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.selfward.data.export.share
 import com.selfward.ui.components.ExportMenu
 import com.selfward.ui.components.ExportOption
+import com.selfward.ui.dashboard.DashboardSection
 import com.selfward.core.graph.GraphNode
 import com.selfward.core.graph.MessageAnalyzer
 
@@ -95,6 +96,11 @@ fun GraphScreen(viewModel: GraphViewModel = hiltViewModel()) {
 
         val insights = state.insights
         if (state.isEmpty || insights == null) {
+            // The numbers are still shown here. Someone can have written notes
+            // and had whole conversations before any pattern has been drawn out
+            // of them, and telling that person there is "nothing yet" while
+            // hiding what they have actually done would be plainly wrong.
+            DashboardSection(Modifier.padding(bottom = 12.dp))
             Text(
                 if (state.loading) "Looking over what you've written…"
                 else "Nothing yet. As you talk about how you're feeling and who's involved, " +
@@ -106,6 +112,7 @@ fun GraphScreen(viewModel: GraphViewModel = hiltViewModel()) {
         }
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            item { DashboardSection() }
             if (insights.highlights.isNotEmpty()) {
                 item {
                     Section("What stands out") {

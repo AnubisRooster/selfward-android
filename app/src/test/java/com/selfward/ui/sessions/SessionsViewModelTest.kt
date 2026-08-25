@@ -1,6 +1,9 @@
 package com.selfward.ui.sessions
 
 import com.selfward.core.ActiveSessionHolder
+import com.selfward.core.dashboard.MessageTally
+import com.selfward.core.dashboard.StatsRepository
+import com.selfward.core.dashboard.Tally
 import com.selfward.core.model.Message
 import com.selfward.core.model.Persona
 import com.selfward.core.repository.Session
@@ -20,6 +23,20 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SessionsViewModelTest {
+
+    /** Counts for the badges under each session title. */
+    private class FakeStatsRepository(
+        private val messages: List<MessageTally> = emptyList(),
+        private val nodes: List<Tally> = emptyList(),
+        private val notes: List<Tally> = emptyList(),
+        private val dreams: List<Tally> = emptyList()
+    ) : StatsRepository {
+        override suspend fun messageTallies() = messages
+        override suspend fun modalityTallies(): Map<String, Int> = emptyMap()
+        override suspend fun nodeTallies() = nodes
+        override suspend fun noteTallies() = notes
+        override suspend fun dreamTallies() = dreams
+    }
 
     private class FakeSessionRepository : SessionRepository {
         val sessions = mutableListOf(
@@ -72,14 +89,14 @@ class SessionsViewModelTest {
 
     @Test
     fun loadsSessionsOnInit() = runTest {
-        val vm = SessionsViewModel(FakeSessionRepository(), ActiveSessionHolder())
+        val vm = SessionsViewModel(FakeSessionRepository(), FakeStatsRepository(), ActiveSessionHolder())
         assertEquals(2, vm.sessions.value.size)
     }
 
     @Test
     fun deleteSessionRemovesItAndRefreshes() = runTest {
         val repo = FakeSessionRepository()
-        val vm = SessionsViewModel(repo, ActiveSessionHolder())
+        val vm = SessionsViewModel(repo, FakeStatsRepository(), ActiveSessionHolder())
 
         vm.deleteSession("s1")
 
@@ -90,7 +107,7 @@ class SessionsViewModelTest {
     @Test
     fun openSessionSetsThePendingSessionOnTheHolder() = runTest {
         val holder = ActiveSessionHolder()
-        val vm = SessionsViewModel(FakeSessionRepository(), holder)
+        val vm = SessionsViewModel(FakeSessionRepository(), FakeStatsRepository(), holder)
 
         vm.openSession("s2")
 

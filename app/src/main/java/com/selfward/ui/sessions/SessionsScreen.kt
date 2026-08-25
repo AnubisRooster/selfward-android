@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.selfward.core.dashboard.SessionStats
 import com.selfward.core.repository.SessionSummary
 import java.text.DateFormat
 import java.util.Date
@@ -37,6 +38,7 @@ fun SessionsScreen(
     val sessions by viewModel.sessions.collectAsState()
     val archived by viewModel.archived.collectAsState()
     val showingArchive by viewModel.showingArchive.collectAsState()
+    val stats by viewModel.stats.collectAsState()
 
     // The ViewModel survives navigating away to start a session, so loading only
     // in init would leave a newly created session missing from this list until
@@ -67,12 +69,14 @@ fun SessionsScreen(
         if (showingArchive) {
             ArchiveList(
                 archived = archived,
+                stats = stats,
                 onRestore = viewModel::restoreSession,
                 onDelete = viewModel::deleteSession
             )
         } else {
             ActiveList(
                 sessions = sessions,
+                stats = stats,
                 onOpen = { id ->
                     viewModel.openSession(id)
                     onOpenSession()
@@ -86,6 +90,7 @@ fun SessionsScreen(
 @Composable
 private fun ActiveList(
     sessions: List<SessionSummary>,
+    stats: Map<String, SessionStats>,
     onOpen: (String) -> Unit,
     onArchive: (String) -> Unit
 ) {
@@ -98,7 +103,7 @@ private fun ActiveList(
     }
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(sessions, key = { it.id }) { session ->
-            SessionRow(session, onClick = { onOpen(session.id) }) {
+            SessionRow(session, stats[session.id], onClick = { onOpen(session.id) }) {
                 TextButton(onClick = { onArchive(session.id) }) { Text("Archive") }
             }
         }
@@ -108,6 +113,7 @@ private fun ActiveList(
 @Composable
 private fun ArchiveList(
     archived: List<SessionSummary>,
+    stats: Map<String, SessionStats>,
     onRestore: (String) -> Unit,
     onDelete: (String) -> Unit
 ) {
@@ -125,7 +131,7 @@ private fun ArchiveList(
     Spacer(Modifier.height(8.dp))
     LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(archived, key = { it.id }) { session ->
-            SessionRow(session, onClick = null) {
+            SessionRow(session, stats[session.id], onClick = null) {
                 TextButton(onClick = { onRestore(session.id) }) { Text("Restore") }
                 TextButton(onClick = { onDelete(session.id) }) { Text("Delete") }
             }
@@ -136,6 +142,7 @@ private fun ArchiveList(
 @Composable
 private fun SessionRow(
     session: SessionSummary,
+    stats: SessionStats?,
     onClick: (() -> Unit)?,
     actions: @Composable () -> Unit
 ) {
@@ -149,11 +156,40 @@ private fun SessionRow(
             Column(Modifier.weight(1f)) {
                 Text(session.title, style = MaterialTheme.typography.bodyLarge)
                 Text(formatTimestamp(session.updatedAt), style = MaterialTheme.typography.bodySmall)
+                SessionBadges(stats)
             }
             actions()
         }
     }
 }
+
+/**
+ * What the session holds, under its title.
+ *
+ * Only non-zero counts are named. A row reading "0 messages · 0 notes · 0
+ * dreams" is a row telling someone what they have not done, which is the last
+ * thing this app should be doing on its opening screen.
+ */
+@Composable
+private fun SessionBadges(stats: SessionStats?) {
+    if (stats == null || stats.isEmpty) return
+
+    val parts = buildList {
+        if (stats.messages > 0) add("${stats.messages} ${plural(stats.messages, "message")}")
+        if (stats.patterns > 0) add("${stats.patterns} ${plural(stats.patterns, "pattern")}")
+        if (stats.notes > 0) add("${stats.notes} ${plural(stats.notes, "note")}")
+        if (stats.dreams > 0) add("${stats.dreams} ${plural(stats.dreams, "dream")}")
+    }
+
+    Text(
+        parts.joinToString(" · "),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag("sessionBadges")
+    )
+}
+
+private fun plural(count: Int, singular: String) = if (count == 1) singular else "${singular}s"
 
 private fun formatTimestamp(epochMillis: Long): String =
     DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(epochMillis))

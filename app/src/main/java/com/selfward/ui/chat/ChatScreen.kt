@@ -36,6 +36,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import com.selfward.core.voice.VoicePhase
 import com.selfward.data.voice.AndroidSttService
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,6 +57,8 @@ fun ChatScreen(
 ) {
         val state by viewModel.uiState.collectAsState()
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
+    val voicePhase by viewModel.voicePhase.collectAsState()
+    val voiceHeard by viewModel.voiceHeard.collectAsState()
     val models by viewModel.models.collectAsState()
     val modelsHeading by viewModel.modelsHeading.collectAsState()
     val probeResults by viewModel.probeResults.collectAsState()
@@ -66,11 +69,21 @@ fun ChatScreen(
     val context = LocalContext.current
     val stt = remember { AndroidSttService(context) }
     var micGranted by remember { mutableStateOf(false) }
+    // Set when the mic was requested in order to start the hands-free loop
+    // rather than a single dictation, so the grant resumes the right one.
+    var micWantedForVoice by remember { mutableStateOf(false) }
     val micLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         micGranted = granted
-        if (granted) stt.startListening(onFinal = { input = it })
+        if (!granted) {
+            micWantedForVoice = false
+        } else if (micWantedForVoice) {
+            micWantedForVoice = false
+            viewModel.startVoice()
+        } else {
+            stt.startListening(onFinal = { input = it })
+        }
     }
 
     // Keyed on the last message's length as well as the count: while a reply is
@@ -218,7 +231,24 @@ fun ChatScreen(
                     TextButton(onClick = { viewModel.setTtsEnabled(!ttsEnabled) }) {
                         Text(if (ttsEnabled) "Read: On" else "Read: Off")
                     }
+                    TextButton(
+                        onClick = {
+                            if (voicePhase != VoicePhase.IDLE) {
+                                viewModel.stopVoice()
+                            } else if (micGranted) {
+                                viewModel.startVoice()
+                            } else {
+                                micWantedForVoice = true
+                                micLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                            }
+                        },
+                        modifier = Modifier.testTag("handsFree")
+                    ) {
+                        Text(if (voicePhase != VoicePhase.IDLE) "Stop" else "Hands-free")
+                    }
                 }
+
+                VoiceStatus(voicePhase, voiceHeard)
                 OutlinedTextField(
                     value = input,
                     onValueChange = { input = it },
@@ -393,3 +423,45 @@ private fun ModelRow(
 
 /** Enough to browse without the conversation disappearing behind it. */
 private val MODEL_LIST_MAX_HEIGHT = 320.dp
+
+/**
+ * What the loop is doing, and what it has heard so far.
+ *
+ * Shown because a hands-free conversation gives no other sign of itself: with
+ * nothing on screen, a person cannot tell being listened to from the app having
+ * quietly stopped. The live transcript is also the only way to notice the
+ * recogniser hearing something other than what was said.
+ */
+@Composable
+private fun VoiceStatus(phase: VoicePhase, heard: String) {
+    if (phase == VoicePhase.IDLE) return
+
+    Surface(
+        tonalElevation = 3.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .testTag("voiceStatus")
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Text(
+                when (phase) {
+                    VoicePhase.LISTENING -> "Listening — just pause when you're done"
+                    VoicePhase.THINKING -> "Thinking…"
+                    VoicePhase.SPEAKING -> "Speaking…"
+                    VoicePhase.IDLE -> ""
+                },
+                style = MaterialTheme.typography.labelLarge
+            )
+            if (heard.isNotBlank()) {
+                Text(
+                    heard,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp).testTag("voiceHeard")
+                )
+            }
+        }
+    }
+}

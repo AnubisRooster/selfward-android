@@ -44,6 +44,7 @@ class SettingsViewModel @Inject constructor(
     val useLocalModel = modelSettings.useLocalModel
     val localModelId = modelSettings.localModelId
     val useLocalTts = modelSettings.useLocalTts
+    val voiceSilenceSeconds = modelSettings.voiceSilenceSeconds
 
     val embeddingModel = EmbeddingModelCatalog.default
 
@@ -130,6 +131,8 @@ class SettingsViewModel @Inject constructor(
     fun setUseLocalModel(use: Boolean) = modelSettings.setUseLocalModel(use)
     fun setLocalModelId(id: String) = modelSettings.setLocalModelId(id)
     fun setUseLocalTts(use: Boolean) = modelSettings.setUseLocalTts(use)
+
+    fun setVoiceSilenceSeconds(seconds: Double) = modelSettings.setVoiceSilenceSeconds(seconds)
 
     fun save() {
         secureSettings.save(provider.value, apiKey.value, model.value)

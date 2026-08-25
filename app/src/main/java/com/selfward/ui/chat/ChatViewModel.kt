@@ -37,11 +37,19 @@ import com.selfward.core.prompt.TherapyPromptBuilder
 import com.selfward.core.repository.SessionRepository
 import com.selfward.core.safety.SafetyGuardrails
 import com.selfward.core.voice.LocalTtsService
+import com.selfward.core.voice.VoiceAction
+import com.selfward.core.voice.VoiceConversation
+import com.selfward.core.voice.VoiceInput
+import com.selfward.core.voice.VoicePhase
+import com.selfward.core.voice.SilenceClock
+import com.selfward.core.voice.SpeechSource
 import com.selfward.core.voice.TtsRequest
 import com.selfward.core.voice.TtsService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -84,7 +92,9 @@ class ChatViewModel @Inject constructor(
     private val secureSettings: SecureSettings,
     private val openRouterCatalog: OpenRouterCatalog,
     private val providerCatalog: ProviderCatalog,
-    private val unusableModels: UnusableModels
+    private val unusableModels: UnusableModels,
+    private val speechRecognizer: SpeechSource,
+    private val silenceClock: SilenceClock
 ) : ViewModel() {
 
     private var sessionId: String? = null
@@ -141,26 +151,135 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    fun send(text: String) {
+    // ---- Hands-free voice mode ----
+
+    private val voice = VoiceConversation()
+
+    private val _voicePhase = MutableStateFlow(VoicePhase.IDLE)
+    val voicePhase = _voicePhase.asStateFlow()
+
+    /** What has been heard this turn, shown live so the person can see it landing. */
+    private val _voiceHeard = MutableStateFlow("")
+    val voiceHeard = _voiceHeard.asStateFlow()
+
+    val voiceActive: Boolean get() = _voicePhase.value != VoicePhase.IDLE
+
+    /**
+     * Starts the hands-free loop.
+     *
+     * The caller is responsible for the microphone permission; this is only
+     * reached once it has been granted.
+     */
+    fun startVoice() {
+        if (speechRecognizer.isUnavailable()) {
+            _uiState.update {
+                it.copy(errorMessage = "This device has no speech recognition available.")
+            }
+            return
+        }
+        perform(voice.start())
+    }
+
+    fun stopVoice() = perform(voice.handle(VoiceInput.Stop))
+
+    fun toggleVoice() = if (voiceActive) stopVoice() else startVoice()
+
+    private fun onVoiceInput(input: VoiceInput) {
+        perform(voice.handle(input))
+    }
+
+    /**
+     * Carries out what the loop decided, and republishes the phase.
+     *
+     * The loop itself owns no microphone, timer or speech engine — this is the
+     * only place any of them are touched, which is what keeps the sequencing
+     * testable on its own.
+     */
+    private fun perform(actions: List<VoiceAction>) {
+        actions.forEach { action ->
+            when (action) {
+                is VoiceAction.StartListening -> speechRecognizer.start(::onVoiceInput)
+                is VoiceAction.StopListening -> speechRecognizer.stop()
+                is VoiceAction.ArmSilence -> armSilence()
+                is VoiceAction.CancelSilence -> cancelSilence()
+                is VoiceAction.Send -> sendSpokenTurn(action.text)
+                is VoiceAction.Speak -> speak(action.text) {
+                    onVoiceInput(VoiceInput.SpeechFinished)
+                }
+                is VoiceAction.Failed ->
+                    _uiState.update { it.copy(errorMessage = action.message) }
+                is VoiceAction.Ended -> {
+                    cancelSilence()
+                    _voiceHeard.value = ""
+                }
+            }
+        }
+        _voicePhase.value = voice.phase
+        if (voice.phase == VoicePhase.LISTENING) _voiceHeard.value = voice.heardSoFar
+    }
+
+    private fun armSilence() {
+        silenceClock.arm(modelSettings.voiceSilenceSeconds.value) {
+            onVoiceInput(VoiceInput.SilenceElapsed)
+        }
+    }
+
+    private fun cancelSilence() = silenceClock.cancel()
+
+    /** Sends a spoken turn and reports the outcome back into the loop. */
+    private fun sendSpokenTurn(text: String) {
+        _voiceHeard.value = ""
+        send(text) { outcome ->
+            onVoiceInput(
+                outcome.fold(
+                    onSuccess = { VoiceInput.ReplyReady(it) },
+                    onFailure = {
+                        VoiceInput.ReplyFailed(
+                            it.message ?: "Couldn't get a reply. Voice mode is off."
+                        )
+                    }
+                )
+            )
+        }
+    }
+
+    /**
+     * The recogniser holds the microphone, so it is released with the
+     * ViewModel rather than left running past the screen that started it.
+     */
+    override fun onCleared() {
+        cancelSilence()
+        speechRecognizer.stop()
+        super.onCleared()
+    }
+
+    // ---- Sending ----
+
+    /**
+     * @param onOutcome when present, receives the reply text or the failure.
+     *   Voice mode needs to know how the turn ended; typed messages do not.
+     */
+    fun send(text: String, onOutcome: ((Result<String>) -> Unit)? = null) {
         val trimmed = text.trim()
         if (trimmed.isBlank()) return
         if (_uiState.value.isSending) return
         _uiState.update { it.copy(isSending = true) }
         viewModelScope.launch {
-            runCatching { doSend(trimmed) }
-                .onFailure { e ->
-                    // A model that refuses to serve is the app's problem, not
-                    // the client's: it chose the model. Set it aside, move to
-                    // the next best free one, and send again before surfacing
-                    // anything.
-                    if (retryOnAnotherFreeModel(e)) {
-                        runCatching { doSend(trimmed) }
-                            .onFailure { second -> showError(second) }
-                    } else {
-                        showError(e)
-                    }
+            var outcome = runCatching { doSend(trimmed) }
+            outcome.onFailure { e ->
+                // A model that refuses to serve is the app's problem, not
+                // the client's: it chose the model. Set it aside, move to
+                // the next best free one, and send again before surfacing
+                // anything.
+                if (retryOnAnotherFreeModel(e)) {
+                    outcome = runCatching { doSend(trimmed) }
+                    outcome.onFailure { second -> showError(second) }
+                } else {
+                    showError(e)
                 }
+            }
             _uiState.update { it.copy(isSending = false) }
+            onOutcome?.invoke(outcome)
         }
     }
 
@@ -326,7 +445,7 @@ class ChatViewModel @Inject constructor(
         return true
     }
 
-    private suspend fun doSend(trimmed: String) {
+    private suspend fun doSend(trimmed: String): String {
         if (sessionId == null) {
             checkReEntry()
             val created = sessionRepository.createSession(personaHolder.persona.value)
@@ -375,9 +494,13 @@ class ChatViewModel @Inject constructor(
         val insights = InsightExtractor.extract(reply)
         runCatching { graphHolder.addInsights(sid, insights) }
         _uiState.update { it.copy(graphNodes = graphHolder.nodes.value) }
-        if (reply.isNotBlank() && _ttsEnabled.value) {
+        // Not while voice mode is running: the loop speaks the reply itself,
+        // and needs to know when the speaking has finished. Speaking here as
+        // well would say every reply twice, over itself.
+        if (reply.isNotBlank() && _ttsEnabled.value && !voiceActive) {
             speak(reply)
         }
+        return reply
     }
 
     /**
@@ -527,17 +650,23 @@ class ChatViewModel @Inject constructor(
         }.getOrDefault(false)
     }
 
-    private fun speak(text: String) {
+    /**
+     * @param onDone called when the speech finishes — **and also when it fails**.
+     *   The voice loop waits for this before listening again, so swallowing it
+     *   on the failure path would leave the loop stuck mid-turn with the mic
+     *   shut, which looks exactly like the app having frozen.
+     */
+    private fun speak(text: String, onDone: () -> Unit = {}) {
         if (modelSettings.useLocalTts.value) {
-            runCatching { localTtsService.speak(text) }
-                .onFailure { reportPlaybackFailure() }
+            runCatching { localTtsService.speak(text, onDone) }
+                .onFailure { reportPlaybackFailure(); onDone() }
             return
         }
         viewModelScope.launch {
             runCatching {
                 val audio = ttsService.synthesize(TtsRequest(input = text))
-                playMp3(audio)
-            }.onFailure { reportPlaybackFailure() }
+                playMp3(audio, onDone)
+            }.onFailure { reportPlaybackFailure(); onDone() }
         }
     }
 
@@ -550,18 +679,22 @@ class ChatViewModel @Inject constructor(
         _uiState.update { it.copy(errorMessage = TTS_FAILED_MESSAGE) }
     }
 
-    private suspend fun playMp3(bytes: ByteArray) = withContext(Dispatchers.IO) {
+    private suspend fun playMp3(bytes: ByteArray, onDone: () -> Unit = {}) =
+        withContext(Dispatchers.IO) {
         val file = File.createTempFile("selfward_tts_", ".mp3")
         val player = MediaPlayer()
         try {
             file.writeBytes(bytes)
             player.setDataSource(file.absolutePath)
             player.prepare()
-            player.start()
+            // Set before starting: a very short clip can finish before a
+            // listener attached afterwards would ever be called.
             player.setOnCompletionListener {
                 it.release()
                 file.delete()
+                onDone()
             }
+            player.start()
         } catch (e: Exception) {
             player.release()
             file.delete()

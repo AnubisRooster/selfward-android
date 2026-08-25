@@ -35,6 +35,12 @@ interface SecureSettings {
     var localModelId: String?
     var useLocalTts: Boolean
 
+    /**
+     * Seconds of quiet that end a spoken turn in voice mode. Zero means unset,
+     * and is read as the default rather than as "end every turn instantly".
+     */
+    var voiceSilenceSeconds: Double
+
     fun save(provider: Provider, apiKey: String, model: String)
 
     /** Built fresh from the current stored values, so callers always see the latest saved settings. */

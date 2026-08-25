@@ -22,6 +22,8 @@ import com.selfward.core.local.ModelDownloader
 import com.selfward.core.modality.ModalityRouter
 import com.selfward.core.modality.TherapyModality
 import com.selfward.core.model.Message
+import com.selfward.core.voice.FakeSpeechSource
+import com.selfward.core.voice.ManualSilenceClock
 import com.selfward.core.model.Persona
 import com.selfward.core.model.Role
 import com.selfward.core.prompt.TherapyPromptBuilder
@@ -179,7 +181,9 @@ class ChatScreenTest {
         FakeSecureSettings(),
         FakeCatalog(),
         FakeProviderCatalog(),
-        FakeUnusable()
+        FakeUnusable(),
+        FakeSpeechSource(),
+        ManualSilenceClock()
     )
 
     /**

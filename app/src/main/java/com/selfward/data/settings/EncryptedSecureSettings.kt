@@ -97,6 +97,11 @@ class EncryptedSecureSettings @Inject constructor(
         get() = prefs.getBoolean(KEY_USE_LOCAL_TTS, false)
         set(value) = prefs.edit().putBoolean(KEY_USE_LOCAL_TTS, value).apply()
 
+    // Stored as a float because SharedPreferences has no double.
+    override var voiceSilenceSeconds: Double
+        get() = prefs.getFloat(KEY_VOICE_SILENCE, 0f).toDouble()
+        set(value) = prefs.edit().putFloat(KEY_VOICE_SILENCE, value.toFloat()).apply()
+
     override fun save(provider: Provider, apiKey: String, model: String) {
         migrateLegacyKey()
         prefs.edit()
@@ -128,5 +133,6 @@ class EncryptedSecureSettings @Inject constructor(
         private const val KEY_USE_LOCAL = "use_local_model"
         private const val KEY_LOCAL_MODEL = "local_model_id"
         private const val KEY_USE_LOCAL_TTS = "use_local_tts"
+        private const val KEY_VOICE_SILENCE = "voice_silence_seconds"
     }
 }

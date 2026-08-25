@@ -25,6 +25,7 @@ class FakeSecureSettings(
     override var useLocalModel: Boolean = false
     override var localModelId: String? = null
     override var useLocalTts: Boolean = false
+    override var voiceSilenceSeconds: Double = 0.0
 
     override fun save(provider: Provider, apiKey: String, model: String) {
         _provider = provider

@@ -12,8 +12,24 @@ import com.selfward.core.chat.Provider
  */
 interface SecureSettings {
     val provider: Provider
+
+    /** The key for the provider currently selected. */
     val apiKey: String?
+
+    /** The model for the provider currently selected. */
     val model: String
+
+    /**
+     * The key held for [provider], whichever one is selected right now.
+     *
+     * Keys are stored per provider because they are not interchangeable: a
+     * single shared key meant that selecting a different provider carried the
+     * previous one's secret along and sent it to whoever was chosen next.
+     */
+    fun apiKeyFor(provider: Provider): String?
+
+    /** The model held for [provider], or that provider's default. */
+    fun modelFor(provider: Provider): String
 
     var useLocalModel: Boolean
     var localModelId: String?

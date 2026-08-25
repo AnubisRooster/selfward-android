@@ -37,7 +37,42 @@ class EncryptedSecureSettings @Inject constructor(
         get() = Provider.valueOf(prefs.getString(KEY_PROVIDER, "OPENAI") ?: "OPENAI")
 
     override val apiKey: String?
-        get() = prefs.getString(KEY_API_KEY, null)
+        get() = apiKeyFor(provider)
+
+    /**
+     * Keys are held per provider.
+     *
+     * One shared key meant that switching provider kept the previous one's
+     * secret on screen and, worse, in the next request: an OpenAI key was sent
+     * to Anthropic simply because the selection changed and nothing cleared it.
+     */
+    override fun apiKeyFor(provider: Provider): String? {
+        migrateLegacyKey()
+        return prefs.getString(keyFor(provider), null)
+    }
+
+    override fun modelFor(provider: Provider): String =
+        prefs.getString(modelKeyFor(provider), null)?.takeIf { it.isNotBlank() }
+            ?: ProviderDefaults.modelFor(provider)
+
+    /**
+     * Moves a key written before keys were per-provider into the slot of
+     * whichever provider was selected at the time, which is the only provider
+     * it could have belonged to. Runs once; the old entry is removed.
+     */
+    private fun migrateLegacyKey() {
+        val legacy = prefs.getString(KEY_API_KEY, null) ?: return
+        val legacyModel = prefs.getString(KEY_MODEL, null)
+        prefs.edit().apply {
+            if (legacy.isNotBlank()) putString(keyFor(provider), legacy)
+            if (!legacyModel.isNullOrBlank()) putString(modelKeyFor(provider), legacyModel)
+            remove(KEY_API_KEY)
+            remove(KEY_MODEL)
+        }.apply()
+    }
+
+    private fun keyFor(provider: Provider) = "api_key_${provider.name}"
+    private fun modelKeyFor(provider: Provider) = "model_${provider.name}"
 
     /**
      * Falls back per provider. A single default was handed to whichever
@@ -45,8 +80,10 @@ class EncryptedSecureSettings @Inject constructor(
      * sent them an OpenAI model id and the first message failed.
      */
     override val model: String
-        get() = prefs.getString(KEY_MODEL, null)?.takeIf { it.isNotBlank() }
-            ?: ProviderDefaults.modelFor(provider)
+        get() {
+            migrateLegacyKey()
+            return modelFor(provider)
+        }
 
     override var useLocalModel: Boolean
         get() = prefs.getBoolean(KEY_USE_LOCAL, false)
@@ -61,10 +98,11 @@ class EncryptedSecureSettings @Inject constructor(
         set(value) = prefs.edit().putBoolean(KEY_USE_LOCAL_TTS, value).apply()
 
     override fun save(provider: Provider, apiKey: String, model: String) {
+        migrateLegacyKey()
         prefs.edit()
             .putString(KEY_PROVIDER, provider.name)
-            .putString(KEY_API_KEY, apiKey)
-            .putString(KEY_MODEL, model)
+            .putString(keyFor(provider), apiKey)
+            .putString(modelKeyFor(provider), model)
             .apply()
     }
 

@@ -101,6 +101,43 @@ Still needed:
 The app icon is an adaptive icon (`ic_launcher_foreground` / `_background` /
 `_monochrome`); the monochrome layer supports Android 13+ themed icons.
 
+## Before submission: what is verified and what blocks
+
+Checked against a real release build on 25 August 2026.
+
+**The release bundle builds.** `./gradlew bundleRelease` produces a 40 MB
+`.aab`. Nothing had ever built the release variant before, which is where
+Hilt, kotlinx.serialization and Ktor usually break first — minification is off
+(`isMinifyEnabled = false`), so R8 is not stripping anything it should not.
+Turning minification on later needs its own test pass, not an assumption.
+
+**Blocking: `targetSdk` is 34.** That is Android 14, from 2023. Google Play
+requires a new app to target an API level released within about a year, so a
+first submission at 34 is very likely to be refused outright. Confirm the
+current minimum in the Play Console before doing anything else — it is the one
+item here that stops a submission rather than making it worse.
+
+Raising it is not a one-line change. The project is on AGP 8.5.0 and Gradle
+8.9, which cannot compile against API 36 or 37; the SDK platforms installed
+locally are 34 and 37, with nothing between. So it means an AGP and Gradle
+upgrade, and those pull on Kotlin, KAPT and Hilt in turn. Worth starting
+early rather than the week of launch.
+
+**Assets are the right size**, with one to confirm:
+
+- `play-icon-512.png` — 512×512 RGBA. Correct.
+- `feature-graphic-1024x500.png` — 1024×500, no alpha channel. Correct.
+- `screenshots/*.png` — six, at 1080×2400. That is a 20:9 phone, taller than
+  the 16:9–9:16 range Google documents. Real devices are this shape and the
+  Console usually takes them, but check on upload; padding to 1080×1920 fixes
+  it if not.
+
+**Permissions are the three the app actually uses** — INTERNET, RECORD_AUDIO,
+POST_NOTIFICATIONS — and each is justified in the section above.
+
+**`versionCode` is 1 and `versionName` is 1.0.0.** Fine for a first upload.
+Every later upload needs a higher `versionCode`; Play refuses a repeat.
+
 ## Release signing setup (do this yourself — nobody else should ever hold this keystore)
 
 `app/build.gradle.kts`'s `release` build type and `.github/workflows/ci.yml`'s

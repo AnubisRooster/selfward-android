@@ -40,6 +40,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
@@ -83,6 +84,13 @@ class ChatViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var sessionId: String? = null
+
+    /** Per-model result of the last check: id to null when it worked, or the refusal. */
+    private val _probeResults = MutableStateFlow<Map<String, String?>>(emptyMap())
+    val probeResults = _probeResults.asStateFlow()
+
+    private val _probing = MutableStateFlow<String?>(null)
+    val probing = _probing.asStateFlow()
 
     /** Free models to choose between, best first. Refreshed each time the app opens. */
     private val _freeModels = MutableStateFlow<List<OpenRouterModel>>(emptyList())
@@ -159,6 +167,98 @@ class ChatViewModel @Inject constructor(
             _freeModels.value = ModelRanking.freeModels(catalogue, unusableModels.all())
         }
     }
+
+    /**
+     * Asks every free model, in order, whether it will actually answer.
+     *
+     * The catalogue cannot say which models will serve a given account — gating
+     * and the account's data-policy setting are both invisible until a real
+     * request is refused. So the only way to answer "which of these works" is to
+     * ask them, once, and remember. The first one that replies is selected.
+     */
+    fun checkWhichModelsWork() {
+        if (_probing.value != null) return
+        val original = secureSettings.model
+        viewModelScope.launch {
+            val results = mutableMapOf<String, String?>()
+            var firstWorking: String? = null
+
+            for (candidate in _freeModels.value) {
+                _probing.value = candidate.shortName
+                secureSettings.save(Provider.OPENROUTER, secureSettings.apiKey.orEmpty(), candidate.id)
+                // firstOrNull, not first: a model that answers 200 with an empty
+                // stream is a failure to report, not a NoSuchElementException to
+                // show the client.
+                val outcome = runCatching {
+                    chatService.sendStreaming(listOf(Message("probe", Role.USER, "hi")))
+                        .firstOrNull()
+                }
+                val failure = outcome.exceptionOrNull()
+                    ?: if (outcome.getOrNull().isNullOrBlank()) {
+                        ChatServiceException("Answered, but sent nothing back.")
+                    } else null
+
+                if (failure == null) {
+                    results[candidate.id] = null
+                    unusableModels.rememberWorking(candidate.id)
+                    if (firstWorking == null) firstWorking = candidate.id
+                } else {
+                    val reason = failure.message.orEmpty()
+                    results[candidate.id] = reason
+                    if (ModelRefusal.isPermanent(reason)) {
+                        unusableModels.remember(candidate.id, reason)
+                    }
+                }
+                _probeResults.value = results.toMap()
+            }
+
+            // Land on something that answered, or put back what was there.
+            secureSettings.save(
+                Provider.OPENROUTER,
+                secureSettings.apiKey.orEmpty(),
+                firstWorking ?: original
+            )
+            publishModelLabel()
+            _probing.value = null
+
+            _uiState.update { it.copy(modelNotice = summarise(results, firstWorking)) }
+        }
+    }
+
+    /**
+     * Says what the check found, grouped by why.
+     *
+     * The distinction matters more than the count: a rate-limited model is one
+     * that works and is busy, and telling someone it "didn't work" sends them
+     * hunting for a replacement they do not need.
+     */
+    private fun summarise(results: Map<String, String?>, firstWorking: String?): String {
+        if (results.isEmpty()) return "No free models to check yet — tap Refresh first."
+        firstWorking?.let { return "${it.substringAfterLast('/')} answered, so it's selected." }
+
+        val failures = results.values.filterNotNull()
+        val busy = failures.count { ModelRefusal.isTransient(it) }
+        val gated = failures.size - busy
+
+        return buildString {
+            append("None answered just now. ")
+            if (busy > 0) {
+                append("$busy ${plural(busy)} rate-limited on OpenRouter's shared free pool, ")
+                append("which is shared with everyone using it — those usually work again ")
+                append("within a few minutes. ")
+            }
+            if (gated > 0) {
+                append("$gated ${plural(gated)} restricted to other kinds of app and won't be offered again. ")
+            }
+            if (failures.any { ModelRefusal.isDataPolicy(it) }) append(ModelRefusal.DATA_POLICY_HINT + " ")
+            if (busy > 0) {
+                append("Adding credit to your OpenRouter account raises the free daily limit, ")
+                append("and a paid model would not be queued behind the shared pool at all.")
+            }
+        }.trim()
+    }
+
+    private fun plural(n: Int) = if (n == 1) "was" else "were"
 
     /** Switches the model mid-conversation, from the chat screen. */
     fun selectModel(modelId: String) {

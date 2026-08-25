@@ -24,10 +24,24 @@ class PrefsUnusableModels(context: Context) : UnusableModels {
         prefs.edit().putStringSet(KEY, all() - modelId).remove("reason_$modelId").apply()
     }
 
+    override fun reasonFor(modelId: String): String? = prefs.getString("reason_$modelId", null)
+
+    override fun working(): Set<String> =
+        prefs.getStringSet(WORKING_KEY, emptySet())?.toSet() ?: emptySet()
+
+    override fun rememberWorking(modelId: String) {
+        prefs.edit()
+            .putStringSet(WORKING_KEY, working() + modelId)
+            .putStringSet(KEY, all() - modelId)
+            .remove("reason_$modelId")
+            .apply()
+    }
+
     override fun clear() = prefs.edit().clear().apply()
 
     private companion object {
         const val KEY = "unusable_model_ids"
+        const val WORKING_KEY = "working_model_ids"
         /** Enough to explain the exclusion in a log or a support question. */
         const val REASON_LIMIT = 300
     }

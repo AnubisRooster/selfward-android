@@ -175,7 +175,10 @@ class ChatScreenTest {
         FakeLocalLLMService(),
         FakeModelDownloader(),
         activeSessionHolder,
-        FakeIntakeStore()
+        FakeIntakeStore(),
+        FakeSecureSettings(),
+        FakeCatalog(),
+        FakeUnusable()
     )
 
     /**
@@ -276,4 +279,21 @@ class ChatScreenTest {
 
     private fun message(id: String, role: Role, content: String, modality: TherapyModality) =
         Message(id = id, role = role, content = content, modality = modality.name)
+
+    /** No catalogue and no exclusions unless a test supplies them. */
+    private class FakeCatalog(
+        private val models: List<com.selfward.core.catalog.OpenRouterModel> = emptyList()
+    ) : com.selfward.core.catalog.OpenRouterCatalog {
+        override suspend fun models(apiKey: String?, forceRefresh: Boolean) = models
+        override fun cached() = models
+    }
+
+    private class FakeUnusable : com.selfward.core.catalog.UnusableModels {
+        val remembered = mutableMapOf<String, String>()
+        override fun all() = remembered.keys.toSet()
+        override fun remember(modelId: String, reason: String) { remembered[modelId] = reason }
+        override fun forget(modelId: String) { remembered.remove(modelId) }
+        override fun clear() = remembered.clear()
+    }
+
 }

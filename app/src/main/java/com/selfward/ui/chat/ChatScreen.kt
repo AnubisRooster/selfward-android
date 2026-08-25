@@ -1,5 +1,6 @@
 package com.selfward.ui.chat
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.mikepenz.markdown.m3.Markdown
+import com.selfward.core.catalog.OpenRouterModel
 import com.selfward.core.modality.TherapyModality
 import com.selfward.ui.components.SelectionChips
 import com.selfward.core.model.Message
@@ -49,6 +52,7 @@ fun ChatScreen(
 ) {
         val state by viewModel.uiState.collectAsState()
     val ttsEnabled by viewModel.ttsEnabled.collectAsState()
+    val freeModels by viewModel.freeModels.collectAsState()
     var input by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
 
@@ -86,6 +90,32 @@ fun ChatScreen(
                 modifier = Modifier.weight(1f)
             )
             TextButton(onClick = onOpenSessions) { Text("History") }
+        }
+
+        // The model belongs next to the conversation it is holding, not three
+        // taps away in Settings: it is the thing most worth changing when a
+        // reply lands badly.
+        ModelBar(
+            label = state.modelLabel,
+            models = freeModels,
+            onSelect = viewModel::selectModel,
+            onRefresh = viewModel::refreshFreeModels
+        )
+
+        state.modelNotice?.let { notice ->
+            Surface(
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        notice,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = viewModel::dismissModelNotice) { Text("OK") }
+                }
+            }
         }
         ModalityPicker(
             selected = state.selectedModality,
@@ -225,3 +255,75 @@ private fun ModalityPicker(
     )
 }
 
+/**
+ * The model in use, and a way to change it without leaving the conversation.
+ *
+ * Collapsed to a single line until tapped, because most of the time the answer
+ * to "which model is this" is all anyone wants; the list only matters in the
+ * moment a reply disappoints.
+ */
+@Composable
+private fun ModelBar(
+    label: String?,
+    models: List<OpenRouterModel>,
+    onSelect: (String) -> Unit,
+    onRefresh: () -> Unit
+) {
+    if (label == null) return
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            if (models.isNotEmpty()) {
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "Close" else "Change")
+                }
+            }
+        }
+
+        if (!expanded) return@Column
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Free models, best first",
+                style = MaterialTheme.typography.labelSmall,
+                modifier = Modifier.weight(1f)
+            )
+            TextButton(onClick = onRefresh) { Text("Refresh") }
+        }
+        models.take(MODELS_IN_CHAT).forEach { model ->
+            Surface(
+                tonalElevation = 1.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 4.dp)
+                    .clickable {
+                        onSelect(model.id)
+                        expanded = false
+                    }
+            ) {
+                Column(Modifier.padding(8.dp)) {
+                    Text(model.shortName, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        listOfNotNull(
+                            model.vendor.takeIf { it.isNotEmpty() },
+                            model.intelligenceIndex?.let { "rated %.0f".format(it) },
+                            model.contextLength.takeIf { it > 0 }?.let { "${it / 1000}k" }
+                        ).joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** A shortlist, not the catalogue — this sits above a conversation. */
+private const val MODELS_IN_CHAT = 6

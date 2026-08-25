@@ -2,7 +2,9 @@ package com.selfward.di
 
 import android.content.Context
 import com.selfward.core.catalog.OpenRouterCatalog
+import com.selfward.core.catalog.UnusableModels
 import com.selfward.data.catalog.HttpOpenRouterCatalog
+import com.selfward.data.catalog.PrefsUnusableModels
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,4 +34,9 @@ object NetworkModule {
         client: HttpClient,
         @ApplicationContext context: Context
     ): OpenRouterCatalog = HttpOpenRouterCatalog(client, context)
+
+    @Provides
+    @Singleton
+    fun provideUnusableModels(@ApplicationContext context: Context): UnusableModels =
+        PrefsUnusableModels(context)
 }

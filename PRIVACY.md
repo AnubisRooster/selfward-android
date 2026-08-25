@@ -56,6 +56,18 @@ retention practices, not this one. Please read the policy of whichever provider
 you choose. Your API key is transmitted only to that same provider, to
 authenticate the request.
 
+**If you use a free model on OpenRouter**, understand what makes it free. Free
+models are rate-limited, and the companies that run them commonly reserve the
+right to train on what is sent through them — that is frequently the trade being
+made in exchange for the cost. The app offers free models because not everyone
+can pay to think out loud, and it says this on the same screen where you pick
+one. It is a real trade, and it is yours to make: a paid model on the same
+provider, or an on-device model, does not involve it.
+
+The app does not offer OpenRouter's cloaked "stealth" models at all. Those are
+free specifically because prompts are logged and shared with the provider
+evaluating them, which is the opposite of what this app is for.
+
 **If you enable cloud text-to-speech**, the text of the assistant's replies is
 sent to the same provider to be turned into audio.
 

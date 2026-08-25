@@ -7,7 +7,6 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -87,11 +86,14 @@ fun SelfwardTheme(
 
     if (!view.isInEditMode) {
         SideEffect {
-            val window = (view.context as Activity).window
-            window.statusBarColor = colors.background.toArgb()
-            window.navigationBarColor = colors.background.toArgb()
+            // Only the icon appearance is set. window.statusBarColor and
+            // navigationBarColor were also set here, and are no-ops from Android
+            // 15 onward — the app draws behind the bars and its own background
+            // shows through, so a colour set on the window paints nothing.
+            //
             // Icons darken on a light background and lighten on a dark one;
-            // without this the status bar text is unreadable in one of the two.
+            // without this the clock and battery are unreadable in one theme.
+            val window = (view.context as Activity).window
             WindowCompat.getInsetsController(window, view).apply {
                 isAppearanceLightStatusBars = !darkTheme
                 isAppearanceLightNavigationBars = !darkTheme

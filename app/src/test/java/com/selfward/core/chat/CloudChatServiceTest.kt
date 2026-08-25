@@ -275,4 +275,133 @@ data: [DONE]
         assertEquals(listOf("he", "llo"), chunks)
     }
 
+
+    /**
+     * iOS sends HTTP-Referer for OpenRouter and Android sent nothing. OpenRouter
+     * attributes requests to an app by that header, and its own refusal for a
+     * gated model says to use "an app listed on openrouter.ai/apps" — which is
+     * this identity.
+     */
+    @Test
+    fun openRouterRequestsIdentifyTheApp() {
+        var referer: String? = null
+        var title: String? = null
+        val engine = MockEngine { request ->
+            referer = request.headers["HTTP-Referer"]
+            title = request.headers["X-Title"]
+            respond(
+                content = ByteReadChannel("""data: {"choices":[{"delta":{"content":"hi"}}]}
+
+"""),
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+
+        runBlocking { service(engine, Provider.OPENROUTER).sendStreaming(userMessage).toList() }
+
+        assertTrue("no referer sent", !referer.isNullOrBlank())
+        assertEquals("Selfward", title)
+    }
+
+    /** Other providers have no use for it and should not be sent it. */
+    @Test
+    fun otherProvidersAreNotSentOpenRoutersHeaders() {
+        var referer: String? = "unset"
+        val engine = MockEngine { request ->
+            referer = request.headers["HTTP-Referer"]
+            respond(
+                content = ByteReadChannel("""data: {"choices":[{"delta":{"content":"hi"}}]}
+
+"""),
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+
+        runBlocking { service(engine, Provider.OPENAI).sendStreaming(userMessage).toList() }
+
+        assertEquals(null, referer)
+    }
+
+    /**
+     * The difference that made the same model answer on iOS and fail here: iOS
+     * never streams. A model that will not serve a streaming request answers a
+     * plain one perfectly well, so it is asked again the way iOS asks.
+     */
+    @Test
+    fun aModelThatWillNotStreamIsAskedAgainWithoutStreaming() {
+        val streamRequests = mutableListOf<Boolean>()
+        val engine = MockEngine { request ->
+            val body = (request.body as io.ktor.http.content.TextContent).text
+            val streaming = body.contains("\"stream\":true")
+            streamRequests += streaming
+            if (streaming) {
+                respond(
+                    content = ByteReadChannel("""{"error":{"message":"streaming not supported"}}"""),
+                    status = HttpStatusCode.BadRequest,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            } else {
+                respond(
+                    content = ByteReadChannel(
+                        """{"choices":[{"message":{"content":"the whole reply"}}]}"""
+                    ),
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+
+        val chunks = runBlocking {
+            service(engine, Provider.OPENROUTER).sendStreaming(userMessage).toList()
+        }
+
+        assertEquals(listOf("the whole reply"), chunks)
+        assertEquals("should have tried streaming, then not", listOf(true, false), streamRequests)
+    }
+
+    /**
+     * A rate limit is the account being over its allowance now. Asking again
+     * immediately spends another request against it and cannot succeed.
+     */
+    @Test
+    fun aRateLimitedRequestIsNotImmediatelyRepeated() {
+        var calls = 0
+        val engine = MockEngine {
+            calls += 1
+            respond(
+                content = ByteReadChannel("""{"error":{"message":"rate-limited upstream"}}"""),
+                status = HttpStatusCode.TooManyRequests,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+
+        val failure = runCatching {
+            runBlocking { service(engine, Provider.OPENROUTER).sendStreaming(userMessage).toList() }
+        }.exceptionOrNull()
+
+        assertEquals("should not have asked twice", 1, calls)
+        assertTrue(failure is ChatServiceException)
+    }
+
+    /** Streaming that works must not be replaced by a second, slower request. */
+    @Test
+    fun aWorkingStreamIsNotRetried() {
+        var calls = 0
+        val engine = MockEngine {
+            calls += 1
+            respond(
+                content = ByteReadChannel("""data: {"choices":[{"delta":{"content":"streamed"}}]}
+
+"""),
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+
+        val chunks = runBlocking {
+            service(engine, Provider.OPENROUTER).sendStreaming(userMessage).toList()
+        }
+
+        assertEquals(listOf("streamed"), chunks)
+        assertEquals(1, calls)
+    }
+
 }

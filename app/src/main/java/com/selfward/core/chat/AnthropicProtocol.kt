@@ -23,13 +23,23 @@ internal object AnthropicProtocol {
     @Serializable
     data class ReqMessage(val role: String, val content: String)
 
+    /**
+     * [max_tokens] and [stream] carry no defaults on purpose.
+     *
+     * kotlinx.serialization omits any value equal to its default, so both were
+     * silently dropped from every request. Anthropic requires max_tokens and
+     * rejects a request without it, and the missing stream flag meant the reply
+     * came back as one JSON body while the client parsed it as an event stream.
+     * [system] keeps its null default, because there it is right for the field
+     * to be absent rather than sent as null.
+     */
     @Serializable
     data class ChatRequest(
         val model: String,
         val messages: List<ReqMessage>,
         val system: String? = null,
-        val max_tokens: Int = DEFAULT_MAX_TOKENS,
-        val stream: Boolean = true
+        val max_tokens: Int,
+        val stream: Boolean
     )
 
     @Serializable
@@ -50,7 +60,13 @@ internal object AnthropicProtocol {
         val conversation = messages
             .filter { it.role != Role.SYSTEM }
             .map { ReqMessage(it.role.name.lowercase(), it.content) }
-        return ChatRequest(model = model, messages = conversation, system = system)
+        return ChatRequest(
+            model = model,
+            messages = conversation,
+            system = system,
+            max_tokens = DEFAULT_MAX_TOKENS,
+            stream = true
+        )
     }
 
     /** The incremental text (if any) carried by one `data:` payload of a streaming response. */

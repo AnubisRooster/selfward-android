@@ -60,6 +60,9 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
     val downloadStatus by viewModel.downloadStatus.collectAsState()
     val downloadProgress by viewModel.downloadProgress.collectAsState()
     val useLocalTts by viewModel.useLocalTts.collectAsState()
+    val ttsVoice by viewModel.ttsVoice.collectAsState()
+    val localTtsVoiceName by viewModel.localTtsVoiceName.collectAsState()
+    val deviceVoices by viewModel.deviceVoices.collectAsState()
     val voiceSilence by viewModel.voiceSilenceSeconds.collectAsState()
     val openRouterModels by viewModel.openRouterModels.collectAsState()
     val catalogLoading by viewModel.catalogLoading.collectAsState()
@@ -212,6 +215,25 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
                 },
                 style = MaterialTheme.typography.bodySmall
             )
+        }
+        item {
+            if (useLocalTts) {
+                DeviceVoicePicker(
+                    grouped = deviceVoices,
+                    selected = localTtsVoiceName,
+                    onSelect = viewModel::setLocalTtsVoiceName,
+                    onRefresh = viewModel::refreshDeviceVoices
+                )
+            } else {
+                Text("Voice", style = MaterialTheme.typography.bodyLarge)
+                SelectionChips(
+                    options = viewModel.cloudVoices,
+                    selected = ttsVoice,
+                    label = { it.replaceFirstChar { c -> c.uppercase() } },
+                    onSelect = viewModel::setTtsVoice,
+                    modifier = Modifier.testTag("cloudVoicePicker")
+                )
+            }
         }
         item {
             Text(
@@ -394,3 +416,54 @@ private fun OpenRouterModelRow(
     }
 }
 
+
+/**
+ * Grouped by [com.selfward.core.voice.VoiceTier], best tier first, matching
+ * the Premium/Enhanced/Standard grouping iOS's own voice picker uses.
+ */
+@Composable
+private fun DeviceVoicePicker(
+    grouped: Map<com.selfward.core.voice.VoiceTier, List<com.selfward.core.voice.DeviceVoice>>,
+    selected: String?,
+    onSelect: (String) -> Unit,
+    onRefresh: () -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Text("Voice", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+        TextButton(onClick = onRefresh) { Text("Refresh") }
+    }
+    if (grouped.isEmpty()) {
+        Text(
+            "No voices found yet. The system speech engine can take a moment to " +
+                "start - tap Refresh once it has.",
+            style = MaterialTheme.typography.bodySmall
+        )
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        com.selfward.core.voice.VoiceTier.entries.forEach { tier ->
+            val voices = grouped[tier].orEmpty()
+            if (voices.isEmpty()) return@forEach
+            Text(
+                tier.name.lowercase().replaceFirstChar { it.uppercase() },
+                style = MaterialTheme.typography.labelLarge
+            )
+            voices.forEach { voice ->
+                Surface(
+                    tonalElevation = if (voice.name == selected) 4.dp else 1.dp,
+                    shadowElevation = if (voice.name == selected) 3.dp else 1.dp,
+                    shape = MaterialTheme.shapes.small,
+                    modifier = Modifier.fillMaxWidth().clickable { onSelect(voice.name) }
+                ) {
+                    Row(
+                        Modifier.padding(10.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = voice.name == selected, onClick = { onSelect(voice.name) })
+                        Text(voice.locale, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
+    }
+}

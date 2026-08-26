@@ -102,6 +102,14 @@ class EncryptedSecureSettings @Inject constructor(
         get() = prefs.getFloat(KEY_VOICE_SILENCE, 0f).toDouble()
         set(value) = prefs.edit().putFloat(KEY_VOICE_SILENCE, value.toFloat()).apply()
 
+    override var ttsVoice: String
+        get() = prefs.getString(KEY_TTS_VOICE, null) ?: com.selfward.core.voice.VoiceCatalog.openAiVoices.first()
+        set(value) = prefs.edit().putString(KEY_TTS_VOICE, value).apply()
+
+    override var localTtsVoiceName: String?
+        get() = prefs.getString(KEY_LOCAL_TTS_VOICE, null)
+        set(value) = prefs.edit().putString(KEY_LOCAL_TTS_VOICE, value).apply()
+
     override fun save(provider: Provider, apiKey: String, model: String) {
         migrateLegacyKey()
         prefs.edit()
@@ -133,6 +141,8 @@ class EncryptedSecureSettings @Inject constructor(
         private const val KEY_USE_LOCAL = "use_local_model"
         private const val KEY_LOCAL_MODEL = "local_model_id"
         private const val KEY_USE_LOCAL_TTS = "use_local_tts"
+        private const val KEY_TTS_VOICE = "tts_voice"
+        private const val KEY_LOCAL_TTS_VOICE = "local_tts_voice"
         private const val KEY_VOICE_SILENCE = "voice_silence_seconds"
     }
 }

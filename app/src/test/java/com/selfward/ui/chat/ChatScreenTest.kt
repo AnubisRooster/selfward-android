@@ -157,6 +157,8 @@ class ChatScreenTest {
         override fun speak(text: String, onDone: () -> Unit) {
             onDone()
         }
+        override fun availableVoices() = emptyList<com.selfward.core.voice.DeviceVoice>()
+        override fun setVoice(name: String?) {}
     }
 
     private fun buildViewModel(
@@ -173,7 +175,7 @@ class ChatScreenTest {
         buildGraphHolder(),
         FakeTtsService(),
         FakeLocalTtsService(),
-        ModelSettings(FakeSecureSettings()),
+        ModelSettings(FakeSecureSettings(), FakeLocalTtsService()),
         FakeLocalLLMService(),
         FakeModelDownloader(),
         activeSessionHolder,

@@ -2,6 +2,18 @@ package com.selfward.ui
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Insights
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Forum
+import androidx.compose.material.icons.outlined.Insights
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -12,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -31,14 +44,20 @@ import com.selfward.ui.settings.SettingsScreen
  * Session flow where the persona is chosen. That is why there is no Persona
  * tab — persona belongs to a session, not to the app.
  */
-private data class Tab(val route: String, val label: String)
+private data class Tab(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+    /** Filled variant shown for the active tab; outlined otherwise. */
+    val selectedIcon: ImageVector
+)
 
 private val TABS = listOf(
-    Tab("chats", "Chats"),
-    Tab("narrative", "Narrative"),
-    Tab("journal", "Journal"),
-    Tab("insights", "Insights"),
-    Tab("settings", "Settings")
+    Tab("chats", "Chats", Icons.Outlined.Forum, Icons.Filled.Forum),
+    Tab("narrative", "Narrative", Icons.Outlined.MenuBook, Icons.Filled.MenuBook),
+    Tab("journal", "Journal", Icons.Outlined.EditNote, Icons.Filled.EditNote),
+    Tab("insights", "Insights", Icons.Outlined.Insights, Icons.Filled.Insights),
+    Tab("settings", "Settings", Icons.Outlined.Settings, Icons.Filled.Settings)
 )
 
 @Composable
@@ -59,11 +78,17 @@ fun MainScreen() {
         bottomBar = {
             NavigationBar {
                 TABS.forEach { tab ->
+                    val isSelected = selected == tab.route
                     NavigationBarItem(
-                        selected = selected == tab.route,
+                        selected = isSelected,
                         onClick = { switchTo(tab.route) },
                         label = { Text(tab.label) },
-                        icon = {}
+                        icon = {
+                            Icon(
+                                if (isSelected) tab.selectedIcon else tab.icon,
+                                contentDescription = null
+                            )
+                        }
                     )
                 }
             }

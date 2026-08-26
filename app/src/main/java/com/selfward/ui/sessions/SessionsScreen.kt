@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -61,7 +62,10 @@ fun SessionsScreen(
                         modifier = Modifier.testTag("openArchive")
                     ) { Text("Archive (${archived.size})") }
                 }
-                TextButton(onClick = onNewSession) { Text("New session") }
+                // The one action on this screen that starts something rather
+                // than filtering or tidying it, so it is the one that gets a
+                // filled button - everything else here is a TextButton.
+                Button(onClick = onNewSession) { Text("New session") }
             }
         }
         Spacer(Modifier.height(12.dp))

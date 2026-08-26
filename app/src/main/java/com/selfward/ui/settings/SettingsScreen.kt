@@ -135,6 +135,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             val canSelect = status == DownloadStatus.DOWNLOADED
             Surface(
                 tonalElevation = 2.dp,
+                shadowElevation = 2.dp,
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().clickable(enabled = canSelect) { viewModel.setLocalModelId(m.id) }
             ) {
@@ -170,7 +171,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         item {
             Text("Semantic memory", style = MaterialTheme.typography.titleSmall)
             val embeddingStatus = downloadStatus[embeddingModel.id] ?: DownloadStatus.NOT_DOWNLOADED
-            Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+            Surface(tonalElevation = 2.dp, shadowElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -350,12 +351,14 @@ private fun OpenRouterModelSection(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        free.forEach { candidate ->
-            OpenRouterModelRow(
-                model = candidate,
-                isSelected = candidate.id == selected,
-                onSelect = { onSelect(candidate.id) }
-            )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            free.forEach { candidate ->
+                OpenRouterModelRow(
+                    model = candidate,
+                    isSelected = candidate.id == selected,
+                    onSelect = { onSelect(candidate.id) }
+                )
+            }
         }
     }
 }
@@ -368,8 +371,9 @@ private fun OpenRouterModelRow(
 ) {
     Surface(
         tonalElevation = if (isSelected) 4.dp else 1.dp,
+        shadowElevation = if (isSelected) 3.dp else 1.dp,
         shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable(onClick = onSelect)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect)
     ) {
         Row(
             Modifier.padding(10.dp),

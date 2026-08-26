@@ -273,11 +273,20 @@ fun ChatScreen(
 @Composable
 private fun MessageBubble(message: Message, showsModality: Boolean) {
     val isUser = message.role == Role.USER
+    // The corner nearest the sender is flattened - bottom-end for the user's
+    // own bubbles, bottom-start for the reply - the one cue that reads as
+    // "chat" rather than "a stack of identical rounded rectangles".
+    val bubbleShape = if (isUser) {
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 4.dp)
+    } else {
+        RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 16.dp)
+    }
     Box(Modifier.fillMaxWidth(), contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart) {
         Surface(
             color = if (isUser) MaterialTheme.colorScheme.primaryContainer
             else MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).padding(4.dp)
+            shape = bubbleShape,
+            modifier = Modifier.padding(4.dp)
         ) {
             Column(Modifier.padding(10.dp)) {
                 if (showsModality) {
@@ -369,7 +378,8 @@ private fun ModelBar(
         Column(
             Modifier
                 .heightIn(max = MODEL_LIST_MAX_HEIGHT)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             models.forEach { model ->
                 ModelRow(
@@ -395,8 +405,9 @@ private fun ModelRow(
 ) {
     Surface(
         tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
         shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).clickable(onClick = onSelect)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onSelect)
     ) {
         Column(Modifier.padding(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

@@ -43,6 +43,7 @@ fun DashboardSection(
 
     Surface(
         tonalElevation = 2.dp,
+        shadowElevation = 2.dp,
         shape = MaterialTheme.shapes.medium,
         modifier = modifier.fillMaxWidth().testTag("dashboard")
     ) {

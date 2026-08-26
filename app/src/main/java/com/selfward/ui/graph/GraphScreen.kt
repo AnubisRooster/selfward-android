@@ -171,7 +171,7 @@ fun GraphScreen(viewModel: GraphViewModel = hiltViewModel()) {
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 2.dp, shadowElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
@@ -182,7 +182,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun NodeRow(node: GraphNode) {
-    Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 1.dp, shadowElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp)) {
             Text(node.label, style = MaterialTheme.typography.bodyMedium)
             Text(

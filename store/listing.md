@@ -27,7 +27,12 @@ Features:
   backed encrypted storage and are sent only to the provider you choose.
 - On-device option: run GGUF language models and local embeddings entirely offline
   with llama.cpp + ONNX Runtime — no data leaves the phone.
-- Voice: speak and listen with text-to-speech and speech-to-text.
+- Hands-free voice: talk and listen without touching the phone — Selfward
+  listens, waits for a natural pause, answers aloud, then listens again.
+- Take your data with you: export your narrative as Markdown or PDF, and your
+  memory graph as GraphML or Cytoscape JSON, through the Android share sheet.
+- See where you've got to: totals, recurring themes, and the feelings that come
+  up most, drawn from your own messages on the device.
 - Configurable companion: choose persona, companion gender/personality, and
   spiritual tradition to tailor the experience.
 
@@ -86,8 +91,23 @@ so the artwork and the first screen match):
   the live header first.
 - `banner-1600x500.png` — the same treatment *with* the wordmark, for anywhere
   nothing else supplies the name: README header, social preview cards.
-- `screenshots/*.png` — recaptured against the renamed build. Recapture again
-  after any further UI work, since onboarding shows the app name in its heading.
+- `screenshots/*.png` — six at 1080×2400, recaptured 25 August 2026 against the
+  current build with real model replies, ordered so the store leads with the
+  conversation rather than an empty session list:
+
+  1. `01-chat` — a real exchange, with the Hands-free control visible.
+  2. `02-insights` — the totals, the patterns drawn from the person's own
+     messages, and Export.
+  3. `03-narrative` — a generated narrative, and Export.
+  4. `04-journal` — notes and dreams.
+  5. `05-settings` — on-device models, semantic memory, voice, crisis lines.
+     This is the privacy screenshot; it is doing the most work of the six.
+  6. `06-sessions` — the session list with per-session counts.
+
+  Recapture after any further UI work. Two things to know before you do:
+  onboarding shows the app name in its heading, and Gboard's floating toolbar
+  will sit over the screen unless the IME is disabled first
+  (`adb shell ime disable <id>`) — several early attempts were spoiled by it.
 
 Regenerating the artwork: the sources are HTML+SVG rendered through headless
 Chrome at exact pixel sizes, which is what gets Lato rendering correctly rather
@@ -103,7 +123,14 @@ The app icon is an adaptive icon (`ic_launcher_foreground` / `_background` /
 
 ## Before submission: what is verified and what blocks
 
-Checked against a real release build on 25 August 2026.
+Checked against a real release build on 25 August 2026, and re-checked after
+the four parity features landed.
+
+**All three cloud providers have now answered a real message** — OpenAI,
+OpenRouter and Anthropic. Anthropic was the last, and testing it found a
+retired default model (#53): the shipped Anthropic default had been withdrawn,
+so a first message returned the API's own bare "model: <id>". The app now moves
+off a starting default the provider no longer serves.
 
 **The release bundle builds.** `./gradlew bundleRelease` produces a 40 MB
 `.aab`. Nothing had ever built the release variant before, which is where
@@ -111,17 +138,15 @@ Hilt, kotlinx.serialization and Ktor usually break first — minification is off
 (`isMinifyEnabled = false`), so R8 is not stripping anything it should not.
 Turning minification on later needs its own test pass, not an assumption.
 
-**Blocking: `targetSdk` is 34.** That is Android 14, from 2023. Google Play
-requires a new app to target an API level released within about a year, so a
-first submission at 34 is very likely to be refused outright. Confirm the
-current minimum in the Play Console before doing anything else — it is the one
-item here that stops a submission rather than making it worse.
+**`targetSdk` is 36 (Android 16).** Raised from 34 in #49, together with AGP
+8.13.2 and Gradle 8.13. That was the one item that would have stopped a
+submission outright. Confirm the current minimum in the Play Console anyway —
+the requirement moves annually and 36 will age out in its turn.
 
-Raising it is not a one-line change. The project is on AGP 8.5.0 and Gradle
-8.9, which cannot compile against API 36 or 37; the SDK platforms installed
-locally are 34 and 37, with nothing between. So it means an AGP and Gradle
-upgrade, and those pull on Kotlin, KAPT and Hilt in turn. Worth starting
-early rather than the week of launch.
+Raising it also turned on Android 15+'s enforced edge-to-edge, so the app now
+opts into it explicitly and holds window insets at the root. Screenshots taken
+before that show the old opaque status bar and three-button navigation; the
+ones in `screenshots/` were recaptured after.
 
 **Assets are the right size**, with one to confirm:
 
@@ -161,6 +186,11 @@ these exist, so nothing here is required to keep building `debug` as normal.
    distinguished-name details (org, name, etc. — used only in the certificate
    metadata, not shown to users).
 
+   The signing wiring itself has been proven end to end with a disposable
+   throwaway key (generated, used to build a signed bundle, verified with
+   `jarsigner`, then deleted). So if step 2 fails, the problem is the keystore
+   or the variables, not the Gradle configuration.
+
 2. **Build a signed release locally** by exporting four env vars before running
    Gradle (the keystore path is the local file, not committed anywhere):
 
@@ -171,6 +201,16 @@ these exist, so nothing here is required to keep building `debug` as normal.
    export RELEASE_KEY_PASSWORD=<key password>
    ./gradlew bundleRelease   # -> app/build/outputs/bundle/release/app-release.aab
    ```
+
+   Then confirm it is signed with *your* key rather than falling back to debug:
+
+   ```bash
+   jarsigner -verify -verbose:summary app/build/outputs/bundle/release/app-release.aab | grep "Signed by"
+   ```
+
+   It should print the certificate name you entered at `keytool` time. If it
+   prints "Android Debug", one of the four variables is unset and the build
+   quietly used the debug key — which Play will reject.
 
 3. **Enable it in CI** by adding four repository secrets (Settings → Secrets and
    variables → Actions → New repository secret) — once `RELEASE_KEYSTORE_BASE64`

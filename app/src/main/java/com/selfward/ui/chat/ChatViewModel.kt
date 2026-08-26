@@ -9,6 +9,7 @@ import com.selfward.core.GraphHolder
 import com.selfward.core.ModelSettings
 import com.selfward.core.chat.ChatService
 import com.selfward.core.catalog.ModelChoice
+import com.selfward.core.catalog.ProviderDefaults
 import com.selfward.core.catalog.ModelRanking
 import com.selfward.core.catalog.ModelRefusal
 import com.selfward.core.catalog.PriceTiers
@@ -296,6 +297,7 @@ class ChatViewModel @Inject constructor(
             val choices = providerCatalog.ranked(provider, secureSettings.apiKey, force = true)
             _models.value = choices
             _modelsHeading.value = PriceTiers.headingFor(provider, choices.size)
+            adoptLiveDefault(provider, choices)
             publishModelLabel()
         }
     }
@@ -404,6 +406,21 @@ class ChatViewModel @Inject constructor(
     }
 
     fun dismissModelNotice() = _uiState.update { it.copy(modelNotice = null) }
+
+    /**
+     * Moves off a starting default the provider no longer serves.
+     *
+     * A hardcoded default ages: Anthropic retired the one shipped here, so
+     * choosing Anthropic and sending a first message failed with the API's own
+     * terse "model: <id>". The catalogue is fetched on every open and knows
+     * what is real, so it decides. Only an unchosen default is replaced — a
+     * model the client picked is theirs to keep.
+     */
+    private fun adoptLiveDefault(provider: Provider, choices: List<ModelChoice>) {
+        val adopted = ProviderDefaults.adoptedFrom(provider, secureSettings.model, choices)
+            ?: return
+        secureSettings.save(provider, secureSettings.apiKey.orEmpty(), adopted)
+    }
 
     private fun publishModelLabel() {
         val label = if (modelSettings.useLocalModel.value) {

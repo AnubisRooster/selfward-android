@@ -2,13 +2,33 @@ package com.selfward.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+
+/**
+ * Every card and banner in the app is a plain [androidx.compose.material3.Surface],
+ * and `Surface` — unlike `Card` — does not read a shape from the theme unless one
+ * is passed explicitly; its own default is a sharp-cornered rectangle. Every
+ * screen was passing `shape = MaterialTheme.shapes.medium` to get out of that
+ * default, which only works if this is set to something worth reaching for.
+ * Slightly softer than stock Material to suit a place people write down
+ * difficult things, not a utility.
+ */
+private val SelfwardShapes = Shapes(
+    extraSmall = RoundedCornerShape(6.dp),
+    small = RoundedCornerShape(10.dp),
+    medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(20.dp),
+    extraLarge = RoundedCornerShape(28.dp)
+)
 
 private val LightColors = lightColorScheme(
     primary = LightPrimary,
@@ -101,5 +121,5 @@ fun SelfwardTheme(
         }
     }
 
-    MaterialTheme(colorScheme = colors, content = content)
+    MaterialTheme(colorScheme = colors, shapes = SelfwardShapes, content = content)
 }

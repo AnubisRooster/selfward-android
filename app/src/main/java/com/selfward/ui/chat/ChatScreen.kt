@@ -129,6 +129,7 @@ fun ChatScreen(
         state.modelNotice?.let { notice ->
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(Modifier.padding(start = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -149,6 +150,7 @@ fun ChatScreen(
         state.reEntryMessage?.let { message ->
             Surface(
                 color = MaterialTheme.colorScheme.secondaryContainer,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(12.dp)) {
@@ -160,6 +162,7 @@ fun ChatScreen(
         state.errorMessage?.let { message ->
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(12.dp)) {
@@ -180,6 +183,7 @@ fun ChatScreen(
             Surface(
                 color = if (level.name == "CRITICAL")
                     MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(Modifier.padding(12.dp)) {
@@ -391,6 +395,7 @@ private fun ModelRow(
 ) {
     Surface(
         tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp).clickable(onClick = onSelect)
     ) {
         Column(Modifier.padding(8.dp)) {

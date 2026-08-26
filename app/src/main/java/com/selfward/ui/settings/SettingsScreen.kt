@@ -135,6 +135,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             val canSelect = status == DownloadStatus.DOWNLOADED
             Surface(
                 tonalElevation = 2.dp,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().clickable(enabled = canSelect) { viewModel.setLocalModelId(m.id) }
             ) {
                 Column(Modifier.padding(12.dp)) {
@@ -169,7 +170,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
         item {
             Text("Semantic memory", style = MaterialTheme.typography.titleSmall)
             val embeddingStatus = downloadStatus[embeddingModel.id] ?: DownloadStatus.NOT_DOWNLOADED
-            Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+            Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(12.dp)) {
                     Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
@@ -255,7 +256,7 @@ private fun AboutSection() {
             style = MaterialTheme.typography.bodyMedium
         )
         Text("Crisis resources", style = MaterialTheme.typography.titleSmall)
-        Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+        Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
             Text(
                 SafetyGuardrails.resourceMessage(),
                 style = MaterialTheme.typography.bodyMedium,
@@ -367,6 +368,7 @@ private fun OpenRouterModelRow(
 ) {
     Surface(
         tonalElevation = if (isSelected) 4.dp else 1.dp,
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable(onClick = onSelect)
     ) {
         Row(

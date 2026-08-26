@@ -18,7 +18,12 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.selfward.app"
+        // Play package names are unique across every developer account on the
+        // store, not just this one - "com.selfward.app" was already taken by
+        // an unrelated app when this was first submitted. Namespaced under the
+        // registered business on the signing certificate instead, which is a
+        // safer bet against a second collision than a generic name.
+        applicationId = "com.intelligentdesignsllc.selfward"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

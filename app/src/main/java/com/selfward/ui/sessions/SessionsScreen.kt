@@ -148,6 +148,7 @@ private fun SessionRow(
 ) {
     Surface(
         tonalElevation = 2.dp,
+        shape = MaterialTheme.shapes.medium,
         modifier = Modifier
             .fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)

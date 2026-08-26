@@ -83,6 +83,7 @@ fun GraphScreen(viewModel: GraphViewModel = hiltViewModel()) {
         state.exportError?.let { message ->
             Surface(
                 color = MaterialTheme.colorScheme.errorContainer,
+                shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
                 Column(Modifier.padding(12.dp)) {
@@ -170,7 +171,7 @@ fun GraphScreen(viewModel: GraphViewModel = hiltViewModel()) {
 
 @Composable
 private fun Section(title: String, content: @Composable () -> Unit) {
-    Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(6.dp))
@@ -181,7 +182,7 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun NodeRow(node: GraphNode) {
-    Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 1.dp, shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp)) {
             Text(node.label, style = MaterialTheme.typography.bodyMedium)
             Text(

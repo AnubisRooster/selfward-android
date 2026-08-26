@@ -45,7 +45,7 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
     ) {
         state.message?.let { message ->
             item {
-                Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+                Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp)) {
                         Text(message, style = MaterialTheme.typography.bodyMedium)
                         TextButton(onClick = viewModel::dismissMessage) { Text("Dismiss") }
@@ -143,7 +143,7 @@ fun JournalScreen(viewModel: JournalViewModel = hiltViewModel()) {
 
 @Composable
 private fun NoteRow(note: Note, onDelete: () -> Unit) {
-    Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 Text(note.title, style = MaterialTheme.typography.bodyLarge)
@@ -160,7 +160,7 @@ private fun NoteRow(note: Note, onDelete: () -> Unit) {
 
 @Composable
 private fun DreamRow(dream: Dream, onDelete: () -> Unit) {
-    Surface(tonalElevation = 2.dp, modifier = Modifier.fillMaxWidth()) {
+    Surface(tonalElevation = 2.dp, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
                 Text(dream.narrative, style = MaterialTheme.typography.bodyMedium)

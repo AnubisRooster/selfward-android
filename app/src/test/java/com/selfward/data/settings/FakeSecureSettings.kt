@@ -26,6 +26,8 @@ class FakeSecureSettings(
     override var localModelId: String? = null
     override var useLocalTts: Boolean = false
     override var voiceSilenceSeconds: Double = 0.0
+    override var ttsVoice: String = com.selfward.core.voice.VoiceCatalog.openAiVoices.first()
+    override var localTtsVoiceName: String? = null
 
     override fun save(provider: Provider, apiKey: String, model: String) {
         _provider = provider

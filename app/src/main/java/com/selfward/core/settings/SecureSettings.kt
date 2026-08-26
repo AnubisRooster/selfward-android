@@ -35,6 +35,12 @@ interface SecureSettings {
     var localModelId: String?
     var useLocalTts: Boolean
 
+    /** Which OpenAI-compatible cloud voice to speak replies in. */
+    var ttsVoice: String
+
+    /** The on-device voice's name, or null to use the engine's own default. */
+    var localTtsVoiceName: String?
+
     /**
      * Seconds of quiet that end a spoken turn in voice mode. Zero means unset,
      * and is read as the default rather than as "end every turn instantly".

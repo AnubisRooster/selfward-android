@@ -45,6 +45,12 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class NarrativeViewModelTest {
 
+    private class FakeLocalTtsService : com.selfward.core.voice.LocalTtsService {
+        override fun speak(text: String, onDone: () -> Unit) { onDone() }
+        override fun availableVoices() = emptyList<com.selfward.core.voice.DeviceVoice>()
+        override fun setVoice(name: String?) {}
+    }
+
     private class FakeNarrativeStore(private var doc: NarrativeDocument? = null) : NarrativeStore {
         override suspend fun load() = doc
         override suspend fun save(document: NarrativeDocument) { doc = document }
@@ -109,7 +115,7 @@ class NarrativeViewModelTest {
         dreams: DreamRepository = FakeDreamRepository(),
         chat: ChatService = RecordingChatService(),
         local: LocalLLMService = RecordingLocalLLM(),
-        settings: ModelSettings = ModelSettings(FakeSecureSettings())
+        settings: ModelSettings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService())
     ) = NarrativeViewModel(
         store, notes, dreams, sessions, chat, local, settings,
         ExportFiles(androidx.test.core.app.ApplicationProvider.getApplicationContext()),
@@ -237,7 +243,7 @@ class NarrativeViewModelTest {
         givenASession()
         val local = RecordingLocalLLM()
         val chat = RecordingChatService()
-        val settings = ModelSettings(FakeSecureSettings()).also {
+        val settings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).also {
             it.setUseLocalModel(true)
             it.setLocalModelId("tinyllama-1.1b")
         }
@@ -255,7 +261,7 @@ class NarrativeViewModelTest {
 
     @Test
     fun theScreenKnowsWhetherRegeneratingWouldLeaveTheDevice() = runTest {
-        val settings = ModelSettings(FakeSecureSettings()).also {
+        val settings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).also {
             it.setUseLocalModel(true)
             it.setLocalModelId("tinyllama-1.1b")
         }

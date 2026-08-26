@@ -30,6 +30,12 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [33])
 class SettingsScreenTest {
+    private class FakeLocalTtsService : com.selfward.core.voice.LocalTtsService {
+        override fun speak(text: String, onDone: () -> Unit) { onDone() }
+        override fun availableVoices() = emptyList<com.selfward.core.voice.DeviceVoice>()
+        override fun setVoice(name: String?) {}
+    }
+
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -59,7 +65,16 @@ class SettingsScreenTest {
     private fun buildViewModel(
         secureSettings: FakeSecureSettings = FakeSecureSettings(),
         modelDownloader: FakeModelDownloader = FakeModelDownloader()
-    ) = SettingsViewModel(secureSettings, ModelSettings(secureSettings), modelDownloader, FakeEmbeddingModelDownloader(), FakeOpenRouterCatalog())
+    ) = FakeLocalTtsService().let { tts ->
+        SettingsViewModel(
+            secureSettings,
+            ModelSettings(secureSettings, tts),
+            modelDownloader,
+            FakeEmbeddingModelDownloader(),
+            FakeOpenRouterCatalog(),
+            tts
+        )
+    }
 
     @Test
     fun showsStoredProviderAndModel() {

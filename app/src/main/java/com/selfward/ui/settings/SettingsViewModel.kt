@@ -16,6 +16,10 @@ import com.selfward.core.local.GGUFModelCatalog
 import com.selfward.core.local.LocalModel
 import com.selfward.core.local.ModelDownloader
 import com.selfward.core.settings.SecureSettings
+import com.selfward.core.voice.DeviceVoice
+import com.selfward.core.voice.LocalTtsService
+import com.selfward.core.voice.VoiceCatalog
+import com.selfward.core.voice.VoiceTier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +38,8 @@ class SettingsViewModel @Inject constructor(
     private val modelSettings: ModelSettings,
     private val modelDownloader: ModelDownloader,
     private val embeddingModelDownloader: EmbeddingModelDownloader,
-    private val openRouterCatalog: OpenRouterCatalog
+    private val openRouterCatalog: OpenRouterCatalog,
+    private val localTtsService: LocalTtsService
 ) : ViewModel() {
 
     val provider = MutableStateFlow(secureSettings.provider)
@@ -45,6 +50,12 @@ class SettingsViewModel @Inject constructor(
     val localModelId = modelSettings.localModelId
     val useLocalTts = modelSettings.useLocalTts
     val voiceSilenceSeconds = modelSettings.voiceSilenceSeconds
+    val ttsVoice = modelSettings.ttsVoice
+    val localTtsVoiceName = modelSettings.localTtsVoiceName
+    val cloudVoices = VoiceCatalog.openAiVoices
+
+    private val _deviceVoices = MutableStateFlow<Map<VoiceTier, List<DeviceVoice>>>(emptyMap())
+    val deviceVoices = _deviceVoices.asStateFlow()
 
     val embeddingModel = EmbeddingModelCatalog.default
 
@@ -65,6 +76,7 @@ class SettingsViewModel @Inject constructor(
 
     init {
         modelSettings.initFromSettings()
+        refreshDeviceVoices()
         _openRouterModels.value = ModelRanking.ranked(openRouterCatalog.cached())
         if (secureSettings.provider == Provider.OPENROUTER) refreshOpenRouterModels()
         viewModelScope.launch {
@@ -133,6 +145,21 @@ class SettingsViewModel @Inject constructor(
     fun setUseLocalTts(use: Boolean) = modelSettings.setUseLocalTts(use)
 
     fun setVoiceSilenceSeconds(seconds: Double) = modelSettings.setVoiceSilenceSeconds(seconds)
+
+    fun setTtsVoice(voice: String) = modelSettings.setTtsVoice(voice)
+
+    fun setLocalTtsVoiceName(name: String) = modelSettings.setLocalTtsVoiceName(name)
+
+    /**
+     * `TextToSpeech` only knows its voices once its async init has completed,
+     * which can be after this screen first opens - so the list is re-read on
+     * demand rather than assumed to be ready from `init`.
+     */
+    fun refreshDeviceVoices() {
+        _deviceVoices.value = com.selfward.core.voice.DeviceVoiceRanking.grouped(
+            localTtsService.availableVoices()
+        )
+    }
 
     fun save() {
         secureSettings.save(provider.value, apiKey.value, model.value)

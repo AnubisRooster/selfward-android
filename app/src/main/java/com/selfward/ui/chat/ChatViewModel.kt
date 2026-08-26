@@ -681,7 +681,9 @@ class ChatViewModel @Inject constructor(
         }
         viewModelScope.launch {
             runCatching {
-                val audio = ttsService.synthesize(TtsRequest(input = text))
+                val audio = ttsService.synthesize(
+                    TtsRequest(input = text, voice = modelSettings.ttsVoice.value)
+                )
                 playMp3(audio, onDone)
             }.onFailure { reportPlaybackFailure(); onDone() }
         }

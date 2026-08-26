@@ -34,6 +34,15 @@ import org.junit.Test
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
+    private class FakeLocalTtsService(
+        private val voices: List<com.selfward.core.voice.DeviceVoice> = emptyList()
+    ) : com.selfward.core.voice.LocalTtsService {
+        val requestedVoices = mutableListOf<String?>()
+        override fun speak(text: String, onDone: () -> Unit) { onDone() }
+        override fun availableVoices() = voices
+        override fun setVoice(name: String?) { requestedVoices += name }
+    }
+
 
     private class FakeModelDownloader : ModelDownloader {
         val started = mutableListOf<String>()
@@ -73,8 +82,20 @@ class SettingsViewModelTest {
     private fun buildVm(
         secureSettings: FakeSecureSettings = FakeSecureSettings(),
         modelDownloader: FakeModelDownloader = FakeModelDownloader(),
-        embeddingDownloader: FakeEmbeddingModelDownloader = FakeEmbeddingModelDownloader()
-    ) = SettingsViewModel(secureSettings, ModelSettings(secureSettings), modelDownloader, embeddingDownloader, FakeOpenRouterCatalog())
+        embeddingDownloader: FakeEmbeddingModelDownloader = FakeEmbeddingModelDownloader(),
+        // One instance shared between ModelSettings and the ViewModel, as Hilt's
+        // @Singleton binding shares one real engine between them in the app -
+        // a test wiring two separate fakes here could not tell a voice picked
+        // through one from a voice the other reports as available.
+        localTtsService: FakeLocalTtsService = FakeLocalTtsService()
+    ) = SettingsViewModel(
+        secureSettings,
+        ModelSettings(secureSettings, localTtsService),
+        modelDownloader,
+        embeddingDownloader,
+        FakeOpenRouterCatalog(),
+        localTtsService
+    )
 
     @Test
     fun initialStateReflectsStoredSettings() {
@@ -217,4 +238,77 @@ class SettingsViewModelTest {
         assertTrue(vm.model.value.startsWith("claude"))
     }
 
+
+    // ---- Voice ----
+
+    @Test
+    fun setTtsVoiceUpdatesStateAndPersists() {
+        val secureSettings = FakeSecureSettings()
+        val vm = buildVm(secureSettings = secureSettings)
+
+        vm.setTtsVoice("nova")
+
+        assertEquals("nova", vm.ttsVoice.value)
+        assertEquals("nova", secureSettings.ttsVoice)
+    }
+
+    @Test
+    fun setLocalTtsVoiceNameUpdatesStateAndTellsTheEngine() {
+        val tts = FakeLocalTtsService()
+        val vm = buildVm(localTtsService = tts)
+
+        vm.setLocalTtsVoiceName("en-us-x-tpc-local")
+
+        assertEquals("en-us-x-tpc-local", vm.localTtsVoiceName.value)
+        assertTrue(tts.requestedVoices.contains("en-us-x-tpc-local"))
+    }
+
+    @Test
+    fun deviceVoicesIsPopulatedFromTheEngineOnInit() {
+        val voice = com.selfward.core.voice.DeviceVoice(
+            "Ava", "en-US", com.selfward.core.voice.VoiceTier.PREMIUM
+        )
+        val vm = buildVm(localTtsService = FakeLocalTtsService(voices = listOf(voice)))
+
+        assertEquals(
+            listOf("Ava"),
+            vm.deviceVoices.value[com.selfward.core.voice.VoiceTier.PREMIUM]?.map { it.name }
+        )
+    }
+
+    /**
+     * The real engine only knows its voices after an async callback that can
+     * land after this screen has already opened, so the list has to be
+     * re-readable on demand rather than trusted from init alone.
+     */
+    @Test
+    fun refreshDeviceVoicesPicksUpVoicesThatArrivedAfterInit() {
+        val voice = com.selfward.core.voice.DeviceVoice(
+            "Ava", "en-US", com.selfward.core.voice.VoiceTier.PREMIUM
+        )
+        var voicesNowReady = false
+        val tts = object : com.selfward.core.voice.LocalTtsService {
+            override fun speak(text: String, onDone: () -> Unit) {}
+            override fun availableVoices() = if (voicesNowReady) listOf(voice) else emptyList()
+            override fun setVoice(name: String?) {}
+        }
+        // Built directly rather than through buildVm: that helper takes the
+        // test's own FakeLocalTtsService, and this test needs a stateful fake
+        // whose answer changes between the two refreshDeviceVoices() calls.
+        val secureSettings = FakeSecureSettings()
+        val vm2 = SettingsViewModel(
+            secureSettings,
+            ModelSettings(secureSettings, tts),
+            FakeModelDownloader(),
+            FakeEmbeddingModelDownloader(),
+            FakeOpenRouterCatalog(),
+            tts
+        )
+        assertTrue(vm2.deviceVoices.value.isEmpty())
+
+        voicesNowReady = true
+        vm2.refreshDeviceVoices()
+
+        assertEquals(listOf("Ava"), vm2.deviceVoices.value[com.selfward.core.voice.VoiceTier.PREMIUM]?.map { it.name })
+    }
 }

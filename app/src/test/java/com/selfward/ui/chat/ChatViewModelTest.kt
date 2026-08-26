@@ -126,6 +126,8 @@ class ChatViewModelTest {
         com.selfward.core.voice.LocalTtsService {
         var spokenText: String? = null
         val spoken = mutableListOf<String>()
+        override fun availableVoices() = emptyList<com.selfward.core.voice.DeviceVoice>()
+        override fun setVoice(name: String?) {}
         override fun speak(text: String, onDone: () -> Unit) {
             if (fail) throw RuntimeException("tts engine unavailable")
             spokenText = text
@@ -257,7 +259,7 @@ class ChatViewModelTest {
         activeSessionHolder: ActiveSessionHolder = ActiveSessionHolder(),
         localLLMService: LocalLLMService = FakeLocalLLMService(),
         modelDownloader: ModelDownloader = FakeModelDownloader(),
-        modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()),
+        modelSettings: ModelSettings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()),
         localTts: com.selfward.core.voice.LocalTtsService = FakeLocalTtsService(),
         intakeStore: com.selfward.core.intake.IntakeStore = FakeIntakeStore(),
         secureSettings: FakeSecureSettings = FakeSecureSettings(),
@@ -294,7 +296,7 @@ class ChatViewModelTest {
 
     /** ModelSettings wired to the on-device path with [modelId] selected. */
     private fun localModelSettings(modelId: String = "tinyllama-1.1b") =
-        ModelSettings(FakeSecureSettings()).also {
+        ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).also {
             it.setUseLocalModel(true)
             it.setLocalModelId(modelId)
         }
@@ -488,7 +490,7 @@ class ChatViewModelTest {
 
     @Test
     fun ttsFailure_isSurfacedButLeavesTheReplyIntact() = runTest {
-        val settings = ModelSettings(FakeSecureSettings()).also { it.setUseLocalTts(true) }
+        val settings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).also { it.setUseLocalTts(true) }
         val (vm, repo) = buildVm(modelSettings = settings, localTts = FakeLocalTtsService(fail = true))
         vm.setTtsEnabled(true)
 
@@ -502,7 +504,7 @@ class ChatViewModelTest {
 
     @Test
     fun emptyReply_doesNotInvokeTts() = runTest {
-        val settings = ModelSettings(FakeSecureSettings()).also { it.setUseLocalTts(true) }
+        val settings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).also { it.setUseLocalTts(true) }
         val tts = FakeLocalTtsService()
         val (vm, _) = buildVm(ChunkedChatService(emptyList()), modelSettings = settings, localTts = tts)
         vm.setTtsEnabled(true)
@@ -911,7 +913,7 @@ class ChatViewModelTest {
         speech: FakeSpeechSource = FakeSpeechSource(),
         localTts: FakeLocalTtsService = FakeLocalTtsService(),
         clock: ManualSilenceClock = ManualSilenceClock(),
-        modelSettings: ModelSettings = ModelSettings(FakeSecureSettings()).apply {
+        modelSettings: ModelSettings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).apply {
             setUseLocalTts(true)
         }
     ): Triple<ChatViewModel, FakeSpeechSource, FakeLocalTtsService> {
@@ -997,11 +999,13 @@ class ChatViewModelTest {
                 listeningDuringSpeech += speech.isListening
                 onDone()
             }
+            override fun availableVoices() = emptyList<com.selfward.core.voice.DeviceVoice>()
+            override fun setVoice(name: String?) {}
         }
         val (vm, repo) = buildVm(
             speech = speech,
             localTts = observingTts,
-            modelSettings = ModelSettings(FakeSecureSettings()).apply { setUseLocalTts(true) }
+            modelSettings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).apply { setUseLocalTts(true) }
         )
         repo.createSession(Persona(PersonaKind.THERAPIST), "s")
         vm.startVoice()
@@ -1022,7 +1026,7 @@ class ChatViewModelTest {
         val (vm, repo) = buildVm(
             chatService = FailingChatService(),
             speech = speech,
-            modelSettings = ModelSettings(FakeSecureSettings()).apply { setUseLocalTts(true) }
+            modelSettings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).apply { setUseLocalTts(true) }
         )
         repo.createSession(Persona(PersonaKind.THERAPIST), "s")
         vm.startVoice()
@@ -1085,7 +1089,7 @@ class ChatViewModelTest {
         val clock = ManualSilenceClock()
         startedVoice(
             clock = clock,
-            modelSettings = ModelSettings(FakeSecureSettings()).apply {
+            modelSettings = ModelSettings(FakeSecureSettings(), FakeLocalTtsService()).apply {
                 setUseLocalTts(true)
                 setVoiceSilenceSeconds(8.0)
             }

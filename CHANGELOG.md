@@ -2,6 +2,14 @@
 
 ## 2026-09-04
 
+- ci: fix non-ASCII chars in workflow (3cb7251)
+- ci: fix workflow YAML (BOM + concurrency group key) (fab7b2d)
+- ci: serialize bot commits via shared concurrency group + stash-aware retry (9cc6090)
+- chore(gitnexus): refresh architecture findings [skip ci] (bdc3c96)
+
+
+## 2026-09-04
+
 - ci: drift tracking + PR risk labels/gate + changelog + graph discipline docs (450157f)
 - chore(gitnexus): refresh architecture findings [skip ci] (1885201)
 - chore(graphify): refresh knowledge graph artifacts [skip ci] (2b06daf)

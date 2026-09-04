@@ -1,8 +1,7 @@
 # Graph Report - selfward-android  (2026-09-04)
 
 ## Corpus Check
-- 240 files · ~181,285 words
-- Verdict: corpus is large enough that graph structure adds value.
+- Large corpus: 250 files · ~531,914 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
 
 ## Summary
 - 2449 nodes · 5305 edges · 134 communities (73 shown, 56 thin omitted)

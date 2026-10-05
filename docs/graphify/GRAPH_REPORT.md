@@ -1,140 +1,151 @@
-# Graph Report - selfward-android  (2026-09-28)
+# Graph Report - selfward-android  (2026-10-05)
 
 ## Corpus Check
-- Large corpus: 252 files · ~605,565 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
+- Large corpus: 252 files · ~605,577 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
 
 ## Summary
-- 2561 nodes · 6667 edges · 117 communities (95 shown, 22 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 123 edges (avg confidence: 0.85)
+- 2917 nodes · 7771 edges · 139 communities (70 shown, 69 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 171 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- NarrativeViewModel.kt
-- OnboardingViewModel
-- VoiceAction
-- GraphHolder
-- RoomStatsRepositoryTest
-- ContinuousSpeechRecognizer
-- DashboardTest
-- ModelRankingTest
-- GraphNode
 - VoiceConversationTest
-- CloudChatServiceTest
-- LocalModel
-- DeviceVoiceRankingTest
-- SessionRepository
-- PersonaKind
-- CrisisResourcesTest
-- HttpProviderCatalog.kt
-- PinScreen.kt
-- GraphExportTest
 - ChatViewModel
-- SettingsViewModelTest
-- WordPieceTokenizer
-- NarrativePdfWriter.kt
-- MessageAnalyzerTest
-- ModelSettings
-- SelfwardDatabase
-- ChatScreen.kt
+- ChatScreenTest
+- LocalModel
+- RoomStatsRepositoryTest
+- ChatViewModelTest
+- SessionRepository
+- ContinuousSpeechRecognizer
+- GraphEdge
+- ModelRankingTest
+- NarrativeScreen.kt
+- DeviceVoiceRankingTest
 - ActiveSessionHolder
 - EmbeddingModelSpec
-- DreamRepository
-- assertequals
-- JournalScreen.kt
-- PriceTiersTest
-- Provider
-- NoteRepository
-- SettingsViewModel
-- DownloadStatus
-- AndroidEmbeddingModelDownloader
-- .viewModel()
-- .generate()
-- Test
-- Theme.kt
-- DownloadProgress
-- Message
-- Persona
-- Inject
-- GraphDao
-- NarrativeTypesetTest
-- NetworkModule.kt
-- .paginate()
+- SettingsScreenTest.kt
+- CrisisResourcesTest
 - ChatViewModel.kt
-- CloudChatServiceTest.kt
-- .pool()
+- GraphNode
+- Test
+- .generate()
+- SelfwardDatabase
+- WordPieceTokenizer
+- GraphExportTest
+- MessageAnalyzerTest
+- Provider
+- NarrativePdfWriter.kt
+- SettingsViewModelTest
+- Message
+- DreamRepository
+- NarrativeViewModelTest
+- PriceTiersTest
 - SettingsScreen.kt
-- JournalViewModelTest
-- NarrativePdfWriterTest.kt
-- UnusableModels
+- Note
+- FakeSecureSettings
+- Theme.kt
+- DashboardTest
+- AndroidEmbeddingModelDownloader
+- CloudChatServiceTest
+- .viewModel()
+- Tally
+- Test
+- Test
+- FakeSpeechSource
+- Block
+- PinLockout
+- NarrativeViewModel.kt
+- com
+- SpiritualTradition
 - .detect()
-- TherapyModality
-- DataModule.kt
-- DreamDao
-- SessionDao
-- MainScreen.kt
+- GraphDao
+- SettingsViewModel
 - NewSessionViewModelTest
-- CloudChatService
-- Role
-- CloudTtsService
-- GraphViewModel.kt
-- NoteDao
-- MessageDao
+- GraphHolder
+- PairedDownloadTest
+- FakeUnusable
+- JournalViewModelTest
+- PersonaKind
+- .pool()
+- Persona
 - GraphScreen.kt
+- OnboardingViewModel
+- ChatScreen.kt
+- .buildRequest()
+- TherapyModality
+- TtsRequest
+- DreamDao
+- SessionEntity
+- OpenRouterCatalog
+- UnusableModels
+- DashboardViewModel.kt
+- .paginate()
+- GraphViewModel.kt
+- NoteEntity
+- MessageEntity
+- NewSessionScreen.kt
 - JournalViewModel
+- NarrativePdfWriterTest.kt
+- ModelChoice
 - ProviderDefaultsAdoptionTest
+- MemoryVectorStore
+- Intake
+- asstateflow
 - PinLockoutTest
 - HttpOpenRouterCatalogTest
+- FakeStatsRepository
+- PinScreen.kt
 - Test
-- SelfwardDatabase.kt
-- NarrativeViewModelTest.kt
-- ModelChoice
-- ChatProtocol
 - ChatProtocolTest
-- TherapyInsights
-- TtsRequest
-- OnboardingScreen.kt
-- graphify_pipeline.py
-- NarrativeEntity
-- Test
-- DashboardSection.kt
+- IntakeStore
+- SelfwardDatabase.kt
+- AndroidModelDownloader
+- OnboardingViewModelTest
 - ExportFiles
+- CompanionPersonality
+- CloudChatService
+- ChatProtocol
+- NarrativeDocument
+- NarrativeEntity
+- OnboardingScreen.kt
+- DashboardSection.kt
+- launch
+- DataModule.kt
 - LlamaCppLocalService
-- SessionsViewModel
-- .isPermanent()
-- PinLockout
-- LockoutStore
 - RoomGraphRepositoryTest.kt
-- SpiritualTradition
-- SessionsScreen.kt
+- RoomSessionRepositoryTest.kt
+- Test
+- LocalLLMService
 - .of()
 - .extract()
-- PinService
-- .speak()
-- .select()
+- Role
 - HttpOpenRouterCatalog
-- SessionMappersTest.kt
+- CloudTtsService
 - AnthropicProtocol
+- .select()
+- EncryptedPinStore.kt
+- OnboardingStep
+- SessionMappersTest.kt
+- FakeSessionRepository
+- SessionStats
 - .extract()
-- .summarise()
-- GGUFModelCatalogTest
-- .emit()
-- ManualSilenceClock
-- gradlew
-- Migrations.kt
-- NarrativeFormat
+- .byId()
+- Inject
+- TtsServiceException
+- FakeLocalTtsService
 - render.sh
 
 ## God Nodes (most connected - your core abstractions)
-1. `Message` - 76 edges
-2. `ChatViewModel` - 65 edges
-3. `Provider` - 60 edges
-4. `GraphNode` - 56 edges
-5. `Persona` - 51 edges
-6. `LocalModel` - 46 edges
-7. `EmbeddingModelSpec` - 39 edges
-8. `VoiceConversationTest` - 37 edges
-9. `GraphEdge` - 36 edges
-10. `SelfwardDatabase` - 35 edges
+1. `Message` - 105 edges
+2. `LocalModel` - 79 edges
+3. `ChatViewModelTest` - 76 edges
+4. `ChatViewModel` - 69 edges
+5. `Provider` - 62 edges
+6. `GraphNode` - 62 edges
+7. `FakeSecureSettings` - 62 edges
+8. `Persona` - 61 edges
+9. `EmbeddingModelSpec` - 48 edges
+10. `ModelSettings` - 47 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `NarrativePdfWriterTest` --calls--> `NarrativePdfWriter`  [INFERRED]
@@ -151,407 +162,307 @@
 ## Import Cycles
 - None detected.
 
-## Communities (117 total, 22 thin omitted)
+## Communities (139 total, 69 thin omitted)
 
-### Community 0 - "NarrativeViewModel.kt"
-Cohesion: 0.05
-Nodes (30): ChatService, Flow, LocalLLMService, NarrativeDocument, NarrativePrompt, NarrativeSource, NarrativeSources, NarrativeStore (+22 more)
-
-### Community 1 - "OnboardingViewModel"
+### Community 0 - "VoiceConversationTest"
 Cohesion: 0.06
-Nodes (27): Intake, IntakeContext, IntakeStore, EncryptedIntakeStore, SharedPreferences, Singleton, AppRootViewModel, HiltViewModel (+19 more)
+Nodes (26): ArmSilence, CancelSilence, Ended, Failed, Final, Partial, RecognizerEnded, RecognizerFailed (+18 more)
 
-### Community 2 - "VoiceAction"
+### Community 1 - "ChatViewModel"
 Cohesion: 0.06
-Nodes (28): ArmSilence, CancelSilence, Ended, Failed, Final, Partial, RecognizerEnded, RecognizerFailed (+20 more)
+Nodes (5): ModelRefusal, Result, UtteranceProgressListener, ChatViewModel, ModelRefusalTest
 
-### Community 3 - "GraphHolder"
+### Community 2 - "ChatScreenTest"
 Cohesion: 0.06
-Nodes (21): EmbeddingProvider, FloatArray, EmbeddingProviderFactory, FloatArray, Singleton, MemoryVectorStore, ScoredId, GraphHolder (+13 more)
+Nodes (10): ChatScreenTest, FakeCatalog, FakeChatService, FakeEmbeddingModelDownloader, FakeIntakeStore, FakeLocalLLMService, FakeLocalTtsService, FakeProviderCatalog (+2 more)
+
+### Community 3 - "LocalModel"
+Cohesion: 0.07
+Nodes (13): LocalModel, DownloadStatus, DOWNLOADED, DOWNLOADING, FAILED, NOT_DOWNLOADED, VERIFYING, ModelDownloader (+5 more)
 
 ### Community 4 - "RoomStatsRepositoryTest"
 Cohesion: 0.08
-Nodes (19): ExportFilesTest, Config, RunWith, Test, After, Config, Context, RunWith (+11 more)
+Nodes (3): ExportFilesTest, MigrationTest, RoomStatsRepositoryTest
 
-### Community 5 - "ContinuousSpeechRecognizer"
-Cohesion: 0.06
-Nodes (17): AndroidSttService, RecognitionListener, Bundle, ByteArray, Context, RecognitionListener, SpeechRecognizer, ContinuousSpeechRecognizer (+9 more)
-
-### Community 6 - "DashboardTest"
-Cohesion: 0.10
-Nodes (7): Dashboard, MessageTally, StatsRepository, Tally, RoomStatsRepository, DashboardTest, Test
-
-### Community 7 - "ModelRankingTest"
-Cohesion: 0.14
-Nodes (5): ModelRanking, OpenRouterModel, Test, ModelRankingTest, JvmOverloads
-
-### Community 8 - "GraphNode"
-Cohesion: 0.10
-Nodes (8): GraphEdge, GraphNode, TherapyGraph, Test, TherapyGraphTest, Test, TherapyGraphUpsertTest, atomiclong
-
-### Community 9 - "VoiceConversationTest"
-Cohesion: 0.12
-Nodes (3): FakeSpeechSource, Test, VoiceConversationTest
-
-### Community 10 - "CloudChatServiceTest"
-Cohesion: 0.12
-Nodes (13): HiltViewModel, ViewModel, PinMode, CONFIRM, SETUP, UNLOCK, PinUiState, PinViewModel (+5 more)
-
-### Community 11 - "LocalModel"
-Cohesion: 0.12
-Nodes (5): GGUFModelCatalog, LocalModel, ModelDownloader, AndroidModelDownloader, FakeModelDownloader
-
-### Community 12 - "DeviceVoiceRankingTest"
+### Community 5 - "ChatViewModelTest"
 Cohesion: 0.11
-Nodes (13): DeviceVoice, DeviceVoiceRanking, VoiceTier, ENHANCED, PREMIUM, STANDARD, LocalTtsService, AndroidTtsService (+5 more)
+Nodes (8): ChatViewModelTest, ChunkedChatService, FailingChatService, FakeChatService, FakeTtsService, MissingKeyChatService, ObservingChatService, ProgrammableLocalLLMService
 
-### Community 13 - "SessionRepository"
-Cohesion: 0.08
-Nodes (8): InMemorySessionRepository, Session, SessionRepository, SessionSummary, toDomain(), toEntity(), toSessionEntity(), RoomSessionRepository
+### Community 6 - "SessionRepository"
+Cohesion: 0.05
+Nodes (7): InMemorySessionRepository, Session, SessionRepository, SessionSummary, RoomSessionRepository, FakeSessionRepository, FakeSessionRepository
 
-### Community 14 - "PersonaKind"
+### Community 7 - "ContinuousSpeechRecognizer"
+Cohesion: 0.06
+Nodes (5): SpeechSource, AndroidSttService, RecognitionListener, ContinuousSpeechRecognizer, RecognitionListener
+
+### Community 8 - "GraphEdge"
 Cohesion: 0.08
-Nodes (22): CompanionGender, FEMININE, MASCULINE, NONBINARY, UNSPECIFIED, CompanionPersonality, BOLD, CALM (+14 more)
+Nodes (9): GraphEdge, GraphRepository, GraphSnapshot, RoomGraphRepository, FakeEmbeddingProvider, GraphHolderTest, RecordingGraphRepository, FakeGraphRepository (+1 more)
+
+### Community 9 - "ModelRankingTest"
+Cohesion: 0.14
+Nodes (3): ModelRanking, OpenRouterModel, ModelRankingTest
+
+### Community 10 - "NarrativeScreen.kt"
+Cohesion: 0.08
+Nodes (5): ExportOption, MainScreen(), Tab, formatDate(), NarrativeScreen()
+
+### Community 11 - "DeviceVoiceRankingTest"
+Cohesion: 0.10
+Nodes (9): DeviceVoice, DeviceVoiceRanking, VoiceTier, ENHANCED, PREMIUM, STANDARD, LocalTtsService, AndroidTtsService (+1 more)
+
+### Community 12 - "ActiveSessionHolder"
+Cohesion: 0.16
+Nodes (6): ActiveSessionHolder, SessionsScreen(), SessionsViewModel, FakeSessionRepository, FakeStatsRepository, SessionsScreenTest
+
+### Community 13 - "EmbeddingModelSpec"
+Cohesion: 0.10
+Nodes (6): EmbeddingModelCatalog, EmbeddingModelSpec, EmbeddingModelDownloader, FakeEmbeddingModelDownloader, FakeEmbeddingModelDownloader, FakeEmbeddingModelDownloader
+
+### Community 14 - "SettingsScreenTest.kt"
+Cohesion: 0.10
+Nodes (10): AboutSection(), DeviceVoicePicker(), DownloadActionButton(), DownloadProgressAndError(), OpenRouterModelRow(), OpenRouterModelSection(), SettingsScreen(), FakeLocalTtsService (+2 more)
 
 ### Community 15 - "CrisisResourcesTest"
 Cohesion: 0.12
-Nodes (7): CrisisResources, Resource, SafetyGuardrails, CrisisResourcesTest, Test, Test, SafetyGuardrailsTest
+Nodes (5): CrisisResources, Resource, SafetyGuardrails, CrisisResourcesTest, SafetyGuardrailsTest
 
-### Community 16 - "HttpProviderCatalog.kt"
-Cohesion: 0.09
-Nodes (29): Flow, HttpClient, HttpClient, HttpClient, HttpClient, After, bearerauth, body (+21 more)
+### Community 17 - "GraphNode"
+Cohesion: 0.13
+Nodes (4): GraphNode, TherapyGraph, TherapyGraphTest, TherapyGraphUpsertTest
 
-### Community 17 - "PinScreen.kt"
-Cohesion: 0.09
-Nodes (30): animatefloatasstate, AppRoot(), Composable, Composable, NumberPad(), PinKey(), PinScreen(), background (+22 more)
-
-### Community 18 - "GraphExportTest"
-Cohesion: 0.23
-Nodes (3): GraphExport, GraphExportTest, Test
-
-### Community 19 - "ChatViewModel"
-Cohesion: 0.11
-Nodes (4): Result, ChatViewModel, Flow, LocalTtsService
-
-### Community 20 - "SettingsViewModelTest"
+### Community 18 - "Test"
 Cohesion: 0.12
-Nodes (10): FakeLocalTtsService, FakeOpenRouterCatalog, After, Before, com, LocalTtsService, OptIn, Test (+2 more)
+Nodes (3): VoiceCatalog, VoiceTranscript, VoiceTranscriptTest
 
 ### Community 21 - "WordPieceTokenizer"
 Cohesion: 0.11
-Nodes (8): LongArray, TokenizedInput, TokenizerConfig, WordPieceTokenizer, Before, Test, WordPieceTokenizerTest, normalizer
-
-### Community 22 - "NarrativePdfWriter.kt"
-Cohesion: 0.13
-Nodes (17): Block, Style, BODY, HEADING, SUBTITLE, TITLE, Cursor, Canvas (+9 more)
+Nodes (4): TokenizedInput, TokenizerConfig, WordPieceTokenizer, WordPieceTokenizerTest
 
 ### Community 23 - "MessageAnalyzerTest"
 Cohesion: 0.15
-Nodes (8): EdgeSpec, Extraction, Kind, MessageAnalyzer, NodeSpec, Relation, Test, MessageAnalyzerTest
+Nodes (7): EdgeSpec, Extraction, Kind, MessageAnalyzer, NodeSpec, Relation, MessageAnalyzerTest
 
-### Community 24 - "ModelSettings"
-Cohesion: 0.13
-Nodes (8): LocalTtsService, ModelSettings, VoiceCatalog, LocalTtsService, Test, ModelSettingsTest, SpyingLocalTtsService, FakeSecureSettings
-
-### Community 25 - "SelfwardDatabase"
-Cohesion: 0.19
-Nodes (7): SelfwardDatabase, DataModule, Context, HttpClient, LocalTtsService, Provides, Singleton
-
-### Community 26 - "ChatScreen.kt"
-Cohesion: 0.11
-Nodes (28): activityresultcontracts, alertdialog, ChatScreen(), Composable, Modifier, MessageBubble(), ModalityPicker(), ModelBar() (+20 more)
-
-### Community 27 - "ActiveSessionHolder"
-Cohesion: 0.09
-Nodes (10): ActiveSessionHolder, Singleton, FakeSessionRepository, FakeStatsRepository, After, Before, OptIn, Test (+2 more)
-
-### Community 28 - "EmbeddingModelSpec"
+### Community 24 - "Provider"
 Cohesion: 0.12
-Nodes (5): EmbeddingModelCatalog, EmbeddingModelSpec, EmbeddingModelDownloader, FakeEmbeddingModelDownloader, FakeEmbeddingModelDownloader
+Nodes (8): ApiConfig, Provider, ANTHROPIC, OPENAI, OPENROUTER, SecureSettings, EncryptedSecureSettings, providerLabel()
+
+### Community 25 - "NarrativePdfWriter.kt"
+Cohesion: 0.12
+Nodes (9): Style, BODY, HEADING, SUBTITLE, TITLE, Cursor, PageTarget, PdfPageTarget (+1 more)
+
+### Community 27 - "SettingsViewModelTest"
+Cohesion: 0.14
+Nodes (4): FakeLocalTtsService, FakeOpenRouterCatalog, SettingsViewModelTest, LocalTtsService
+
+### Community 28 - "Message"
+Cohesion: 0.13
+Nodes (4): ChatService, ChatServiceException, MissingApiKeyException, Message
 
 ### Community 29 - "DreamRepository"
 Cohesion: 0.09
 Nodes (7): Dream, DreamRepository, DreamSymbols, joinToList(), RoomDreamRepository, FakeDreamRepository, FakeDreamRepository
 
-### Community 30 - "assertequals"
-Cohesion: 0.18
-Nodes (9): assertequals, assertfalse, assertnotnull, assertnull, asserttrue, kind, relation, simpledateformat (+1 more)
-
-### Community 31 - "JournalScreen.kt"
-Cohesion: 0.15
-Nodes (24): alignment, Composable, Modifier, prettifyEnumName(), SelectionChips(), DreamRow(), formatDate(), JournalScreen() (+16 more)
-
-### Community 32 - "PriceTiersTest"
-Cohesion: 0.19
-Nodes (3): PriceTiers, Test, PriceTiersTest
-
-### Community 33 - "Provider"
-Cohesion: 0.15
-Nodes (11): ApiConfig, Provider, ANTHROPIC, OPENAI, OPENROUTER, SecureSettings, EncryptedSecureSettings, Singleton (+3 more)
-
-### Community 34 - "NoteRepository"
-Cohesion: 0.13
-Nodes (11): Note, NoteRepository, NoteType, JOURNAL, REFLECTION, SESSION_NOTE, RoomNoteRepository, splitList() (+3 more)
-
-### Community 35 - "SettingsViewModel"
-Cohesion: 0.12
-Nodes (5): HiltViewModel, LocalTtsService, ViewModel, SettingsViewModel, isactive
-
-### Community 36 - "DownloadStatus"
-Cohesion: 0.11
-Nodes (19): DownloadStatus, DOWNLOADED, DOWNLOADING, FAILED, NOT_DOWNLOADED, VERIFYING, Context, DownloadManager (+11 more)
-
-### Community 38 - ".viewModel()"
-Cohesion: 0.19
-Nodes (4): FakeLockoutStore, FakePinStore, Test, PinViewModelTest
-
-### Community 40 - "Test"
+### Community 30 - "NarrativeViewModelTest"
 Cohesion: 0.22
-Nodes (3): ModalityRouter, Test, ModalityRouterTest
+Nodes (4): FailingChatService, FakeNoteRepository, NarrativeViewModelTest, RecordingChatService
 
-### Community 41 - "Theme.kt"
+### Community 32 - "SettingsScreen.kt"
+Cohesion: 0.14
+Nodes (4): DreamRow(), formatDate(), JournalScreen(), NoteRow()
+
+### Community 33 - "Note"
+Cohesion: 0.14
+Nodes (10): Note, NoteRepository, NoteType, JOURNAL, REFLECTION, SESSION_NOTE, RoomNoteRepository, splitList() (+2 more)
+
+### Community 35 - "FakeSecureSettings"
+Cohesion: 0.18
+Nodes (4): ModelSettings, ModelSettingsTest, SpyingLocalTtsService, FakeSecureSettings
+
+### Community 36 - "Theme.kt"
 Cohesion: 0.11
-Nodes (19): activity, AndroidEntryPoint, Bundle, MainActivity, Composable, SelfwardTheme(), ComponentActivity, darkcolorscheme (+11 more)
+Nodes (3): MainActivity, AppRoot(), SelfwardTheme()
 
-### Community 42 - "DownloadProgress"
+### Community 40 - ".viewModel()"
+Cohesion: 0.19
+Nodes (3): FakeLockoutStore, FakePinStore, PinViewModelTest
+
+### Community 41 - "Tally"
+Cohesion: 0.16
+Nodes (5): MessageTally, StatsRepository, Tally, RoomStatsRepository, FailingStatsRepository
+
+### Community 43 - "Test"
+Cohesion: 0.24
+Nodes (4): NarrativeSource, NarrativeSources, NarrativePromptTest, NarrativeSourcesTest
+
+### Community 44 - "FakeSpeechSource"
+Cohesion: 0.11
+Nodes (4): FakeSpeechSource, ManualSilenceClock, LocalTtsService, FakeLocalTtsService
+
+### Community 45 - "Block"
 Cohesion: 0.23
-Nodes (5): DownloadProgress, Half, PairedDownload, Test, PairedDownloadTest
+Nodes (3): Block, NarrativeTypesetTest, RecordingTarget
 
-### Community 43 - "Message"
-Cohesion: 0.25
-Nodes (3): Message, AnthropicProtocolTest, Test
+### Community 46 - "PinLockout"
+Cohesion: 0.15
+Nodes (8): Incorrect, LockedOut, LockoutStore, PinAttempt, PinLockout, Success, PinService, PinStore
 
-### Community 44 - "Persona"
-Cohesion: 0.22
-Nodes (6): Persona, TherapyPromptBuilder, Test, TherapyPromptBuilderTest, InMemorySessionRepositoryTest, Test
+### Community 47 - "NarrativeViewModel.kt"
+Cohesion: 0.14
+Nodes (7): NarrativePrompt, NarrativePdfWriter, NarrativeFormat, MARKDOWN, PDF, NarrativeUiState, NarrativeViewModel
 
-### Community 45 - "Inject"
-Cohesion: 0.16
-Nodes (14): Singleton, Singleton, PersonaHolder, MainApplication, DashboardUiState, DashboardViewModel, HiltViewModel, StateFlow (+6 more)
-
-### Community 46 - "GraphDao"
-Cohesion: 0.18
-Nodes (10): GraphDao, Dao, Insert, Query, GraphEdgeEntity, Entity, PrimaryKey, GraphNodeEntity (+2 more)
-
-### Community 47 - "NarrativeTypesetTest"
-Cohesion: 0.20
-Nodes (8): Canvas, Config, RunWith, Test, NarrativeTypesetTest, RecordingTarget, bitmap, robolectrictestrunner
-
-### Community 48 - "NetworkModule.kt"
-Cohesion: 0.20
-Nodes (11): OpenRouterCatalog, ProviderCatalog, Context, HttpClient, InstallIn, Module, Provides, Singleton (+3 more)
-
-### Community 49 - ".paginate()"
-Cohesion: 0.26
-Nodes (5): NarrativeExport, Test, NarrativeExportTest, date, DateFormat
-
-### Community 50 - "ChatViewModel.kt"
+### Community 50 - "com"
 Cohesion: 0.13
-Nodes (13): SilenceClock, CoroutineSilenceClock, HiltViewModel, ViewModel, cancellationexception, CoroutineScope, emitall, firstornull (+5 more)
+Nodes (5): ChatService, FakeEmbeddingModelDownloader, FakeIntakeStore, FakeLocalLLMService, FakeProviderCatalog
 
-### Community 51 - "CloudChatServiceTest.kt"
-Cohesion: 0.16
-Nodes (17): Config, MockEngine, RunWith, MockEngine, bytechannel, bytereadchannel, completabledeferred, headersof (+9 more)
+### Community 51 - "SpiritualTradition"
+Cohesion: 0.11
+Nodes (17): CompanionGender, FEMININE, MASCULINE, NONBINARY, UNSPECIFIED, CrisisPattern, SpiritualTradition, BUDDHIST (+9 more)
 
-### Community 52 - ".pool()"
+### Community 52 - ".detect()"
+Cohesion: 0.31
+Nodes (3): CycleDetector, Cycles, CycleDetectorTest
+
+### Community 53 - "GraphDao"
 Cohesion: 0.18
-Nodes (8): FloatArray, LongArray, MeanPooling, FloatArray, Test, MeanPoolingTest, assertarrayequals, assertthrows
+Nodes (3): GraphDao, GraphEdgeEntity, GraphNodeEntity
 
-### Community 53 - "SettingsScreen.kt"
-Cohesion: 0.19
-Nodes (18): AboutSection(), DeviceVoicePicker(), DownloadActionButton(), DownloadProgressAndError(), com, Composable, OpenRouterModelRow(), OpenRouterModelSection() (+10 more)
+### Community 56 - "GraphHolder"
+Cohesion: 0.18
+Nodes (3): EmbeddingProvider, EmbeddingProviderFactory, GraphHolder
 
-### Community 54 - "JournalViewModelTest"
+### Community 57 - "PairedDownloadTest"
 Cohesion: 0.25
-Nodes (5): JournalViewModelTest, After, Before, OptIn, Test
+Nodes (3): Half, PairedDownload, PairedDownloadTest
 
-### Community 55 - "NarrativePdfWriterTest.kt"
-Cohesion: 0.22
-Nodes (8): androidjunit4, ByteArray, RunWith, Test, NarrativePdfWriterTest, bytearrayoutputstream, instrumentationregistry, style
+### Community 58 - "FakeUnusable"
+Cohesion: 0.13
+Nodes (6): ChatService, ChatService, ChatService, FakeCatalog, FakeUnusable, RefusesFirstModel
 
-### Community 56 - "UnusableModels"
-Cohesion: 0.12
-Nodes (3): UnusableModels, PrefsUnusableModels, context
+### Community 60 - "PersonaKind"
+Cohesion: 0.15
+Nodes (6): PersonaKind, COMPANION, SPIRITUAL, THERAPIST, NewSessionUiState, NewSessionViewModel
 
-### Community 58 - "TherapyModality"
+### Community 62 - "Persona"
+Cohesion: 0.24
+Nodes (4): Persona, PersonaHolder, TherapyPromptBuilder, TherapyPromptBuilderTest
+
+### Community 63 - "GraphScreen.kt"
+Cohesion: 0.17
+Nodes (7): colorFor(), GraphCanvas(), GraphScreen(), kindLabel(), NodeRow(), Section(), timesLabel()
+
+### Community 65 - "ChatScreen.kt"
+Cohesion: 0.19
+Nodes (6): ChatScreen(), MessageBubble(), ModalityPicker(), ModelBar(), ModelRow(), VoiceStatus()
+
+### Community 67 - "TherapyModality"
 Cohesion: 0.12
 Nodes (14): TherapyModality, ACTIVE_IMAGINATION, AUDIO, DREAM, GROUNDING, IDENTITY, JOURNAL, PURPOSE (+6 more)
 
-### Community 59 - "DataModule.kt"
-Cohesion: 0.11
-Nodes (9): SpeechSource, OnnxEmbeddingProvider, RoomGraphRepository, InstallIn, Module, migration_1_2, migration_2_3, migration_3_4 (+1 more)
+### Community 73 - "DashboardViewModel.kt"
+Cohesion: 0.19
+Nodes (3): Dashboard, DashboardUiState, DashboardViewModel
 
-### Community 60 - "DreamDao"
-Cohesion: 0.20
-Nodes (8): DreamDao, Dao, Insert, Query, DreamEntity, Entity, PrimaryKey, onconflictstrategy
-
-### Community 61 - "SessionDao"
-Cohesion: 0.20
-Nodes (8): Dao, Insert, Query, SessionDao, Entity, PrimaryKey, SessionEntity, index
-
-### Community 62 - "MainScreen.kt"
-Cohesion: 0.12
-Nodes (17): Composable, MainScreen(), Tab, editnote, fillmaxsize, forum, icon, icons (+9 more)
-
-### Community 63 - "NewSessionViewModelTest"
-Cohesion: 0.27
-Nodes (4): After, OptIn, Test, NewSessionViewModelTest
-
-### Community 64 - "CloudChatService"
-Cohesion: 0.23
-Nodes (5): ChatServiceException, Exception, Flow, MissingApiKeyException, CloudChatService
-
-### Community 65 - "Role"
-Cohesion: 0.16
-Nodes (10): Role, ASSISTANT, SYSTEM, USER, After, Before, Config, RunWith (+2 more)
-
-### Community 66 - "CloudTtsService"
-Cohesion: 0.21
-Nodes (7): Exception, TtsService, TtsServiceException, CloudTtsService, ByteArray, CloudTtsServiceTest, Test
-
-### Community 67 - "GraphViewModel.kt"
+### Community 75 - "GraphViewModel.kt"
 Cohesion: 0.18
-Nodes (11): ExportedFile, Uri, share(), GraphFormat, GRAPHML, JSON, GraphViewModel, InsightsUiState (+3 more)
+Nodes (7): ExportedFile, share(), GraphFormat, GRAPHML, JSON, GraphViewModel, InsightsUiState
 
-### Community 68 - "NoteDao"
+### Community 76 - "NoteEntity"
 Cohesion: 0.21
-Nodes (8): SessionCountRow, Dao, Insert, Query, NoteDao, Entity, PrimaryKey, NoteEntity
+Nodes (3): SessionCountRow, NoteDao, NoteEntity
 
-### Community 69 - "MessageDao"
+### Community 77 - "MessageEntity"
 Cohesion: 0.21
-Nodes (9): Dao, Insert, Query, MessageCountRow, MessageDao, ModalityCountRow, Entity, PrimaryKey (+1 more)
+Nodes (4): MessageCountRow, MessageDao, ModalityCountRow, MessageEntity
 
-### Community 70 - "GraphScreen.kt"
-Cohesion: 0.21
-Nodes (15): ExportOption, colorFor(), GraphCanvas(), GraphScreen(), kindLabel(), com, Composable, NodeRow() (+7 more)
+### Community 78 - "NewSessionScreen.kt"
+Cohesion: 0.19
+Nodes (4): prettifyEnumName(), SelectionChips(), Field(), NewSessionScreen()
 
-### Community 71 - "JournalViewModel"
-Cohesion: 0.20
-Nodes (4): JournalUiState, JournalViewModel, HiltViewModel, ViewModel
-
-### Community 73 - "PinLockoutTest"
-Cohesion: 0.33
-Nodes (4): Clock, FakeLockoutStore, Test, PinLockoutTest
-
-### Community 75 - "Test"
-Cohesion: 0.30
-Nodes (3): ProviderDefaults, Test, ProviderDefaultsTest
-
-### Community 76 - "SelfwardDatabase.kt"
-Cohesion: 0.21
-Nodes (9): InsightDao, Dao, Insert, Query, InsightEntity, Entity, PrimaryKey, Database (+1 more)
-
-### Community 77 - "NarrativeViewModelTest.kt"
-Cohesion: 0.31
-Nodes (9): Config, RunWith, Before, dispatchers, experimentalcoroutinesapi, resetmain, runtest, setmain (+1 more)
-
-### Community 79 - "ChatProtocol"
-Cohesion: 0.35
-Nodes (13): ApiError, ChatProtocol, ChatRequest, ErrorEnvelope, ErrorMetadata, Serializable, ReqMessage, StreamChoice (+5 more)
-
-### Community 81 - "TherapyInsights"
-Cohesion: 0.22
-Nodes (3): CycleDetector, Cycles, TherapyInsights
-
-### Community 82 - "TtsRequest"
+### Community 81 - "ModelChoice"
 Cohesion: 0.23
-Nodes (6): Serializable, TtsRequest, ByteArray, Test, TtsRequestTest, SerialName
+Nodes (3): ModelChoice, ProviderCatalog, HttpProviderCatalog
 
-### Community 83 - "OnboardingScreen.kt"
+### Community 83 - "MemoryVectorStore"
+Cohesion: 0.19
+Nodes (3): MemoryVectorStore, ScoredId, MemoryVectorStoreTest
+
+### Community 84 - "Intake"
+Cohesion: 0.26
+Nodes (4): Intake, IntakeContext, IntakeContextTest, FakeIntakeStore
+
+### Community 85 - "asstateflow"
+Cohesion: 0.17
+Nodes (6): PinMode, CONFIRM, SETUP, UNLOCK, PinUiState, PinViewModel
+
+### Community 86 - "PinLockoutTest"
+Cohesion: 0.33
+Nodes (3): Clock, FakeLockoutStore, PinLockoutTest
+
+### Community 89 - "PinScreen.kt"
+Cohesion: 0.18
+Nodes (3): NumberPad(), PinKey(), PinScreen()
+
+### Community 92 - "IntakeStore"
+Cohesion: 0.19
+Nodes (3): IntakeStore, EncryptedIntakeStore, AppRootViewModel
+
+### Community 97 - "CompanionPersonality"
+Cohesion: 0.16
+Nodes (10): CompanionPersonality, BOLD, CALM, CHEERFUL, DEEP, PLAYFUL, WARM, toDomain() (+2 more)
+
+### Community 99 - "ChatProtocol"
+Cohesion: 0.34
+Nodes (12): ApiError, ChatProtocol, ChatRequest, ErrorEnvelope, ErrorMetadata, ReqMessage, StreamChoice, StreamChunk (+4 more)
+
+### Community 100 - "NarrativeDocument"
+Cohesion: 0.22
+Nodes (4): NarrativeDocument, NarrativeStore, RoomNarrativeStore, FakeNarrativeStore
+
+### Community 102 - "OnboardingScreen.kt"
 Cohesion: 0.35
-Nodes (13): AboutYouStep(), ApiKeyStep(), DisclaimerStep(), GoalsStep(), IntakeStep(), Composable, LocalModelStep(), OnboardingScreen() (+5 more)
+Nodes (9): AboutYouStep(), ApiKeyStep(), DisclaimerStep(), GoalsStep(), IntakeStep(), LocalModelStep(), OnboardingScreen(), OnDeviceOnlyNote() (+1 more)
 
-### Community 84 - "graphify_pipeline.py"
-Cohesion: 0.14
-Nodes (12): graphify_analyze, graphify_build, graphify_cluster, graphify_detect, graphify_export, graphify_extract, graphify_llm, graphify_report (+4 more)
-
-### Community 85 - "NarrativeEntity"
-Cohesion: 0.26
-Nodes (7): Dao, Insert, Query, NarrativeDao, Entity, PrimaryKey, NarrativeEntity
-
-### Community 86 - "Test"
-Cohesion: 0.32
-Nodes (3): SseParser, Test, SseParserTest
-
-### Community 87 - "DashboardSection.kt"
+### Community 105 - "DashboardSection.kt"
 Cohesion: 0.38
-Nodes (11): GlobalStats, Count(), Counts(), DashboardSection(), Composable, Modifier, OptIn, Modalities() (+3 more)
+Nodes (7): GlobalStats, Count(), Counts(), DashboardSection(), Modalities(), plural(), Themes()
 
-### Community 88 - "ExportFiles"
-Cohesion: 0.32
-Nodes (5): ExportFiles, Context, Uri, fileprovider, outputstream
-
-### Community 89 - "LlamaCppLocalService"
+### Community 116 - "Role"
 Cohesion: 0.24
-Nodes (5): Flow, LlamaCppLocalService, emptyflow, llamaconfig, LlamaModel
+Nodes (5): Role, ASSISTANT, SYSTEM, USER, InMemorySessionRepositoryTest
 
-### Community 90 - "SessionsViewModel"
-Cohesion: 0.26
-Nodes (4): HiltViewModel, ViewModel, SessionsViewModel, viewmodelscope
+### Community 119 - "AnthropicProtocol"
+Cohesion: 0.44
+Nodes (6): AnthropicProtocol, ApiError, ChatRequest, ReqMessage, StreamDelta, StreamEvent
 
-### Community 92 - "PinLockout"
-Cohesion: 0.27
-Nodes (5): Incorrect, LockedOut, PinAttempt, PinLockout, Success
+### Community 122 - "OnboardingStep"
+Cohesion: 0.22
+Nodes (9): OnboardingStep, ABOUT_YOU, API_KEY, CONCERNS, DISCLAIMER, GOALS, HISTORY, LOCAL_MODEL (+1 more)
 
-### Community 93 - "LockoutStore"
-Cohesion: 0.27
-Nodes (5): LockoutStore, EncryptedPinStore, SharedPreferences, Singleton, PrefsLockoutStore
-
-### Community 94 - "RoomGraphRepositoryTest.kt"
-Cohesion: 0.29
-Nodes (6): After, Before, Config, RunWith, Test, RoomGraphRepositoryTest
-
-### Community 95 - "SpiritualTradition"
-Cohesion: 0.20
-Nodes (10): SpiritualTradition, BUDDHIST, CHRISTIAN, HINDU, INTERFAITH, ISLAMIC, JEWISH, SECULAR (+2 more)
-
-### Community 96 - "SessionsScreen.kt"
-Cohesion: 0.56
-Nodes (9): SessionStats, ActiveList(), ArchiveList(), formatTimestamp(), Composable, plural(), SessionBadges(), SessionRow() (+1 more)
-
-### Community 97 - ".of()"
-Cohesion: 0.31
-Nodes (4): CosineSimilarity, FloatArray, CosineSimilarityTest, Test
-
-### Community 101 - ".select()"
-Cohesion: 0.36
-Nodes (3): ModelSelector, Test, ModelSelectorTest
-
-### Community 104 - "AnthropicProtocol"
-Cohesion: 0.54
-Nodes (7): AnthropicProtocol, ApiError, ChatRequest, Serializable, ReqMessage, StreamDelta, StreamEvent
-
-### Community 105 - ".extract()"
-Cohesion: 0.38
-Nodes (3): InsightExtractor, InsightExtractorTest, Test
-
-### Community 110 - "gradlew"
-Cohesion: 0.83
-Nodes (3): gradlew script, die(), warn()
-
-### Community 112 - "NarrativeFormat"
-Cohesion: 0.67
-Nodes (3): NarrativeFormat, MARKDOWN, PDF
+### Community 125 - "SessionStats"
+Cohesion: 0.46
+Nodes (7): SessionStats, ActiveList(), ArchiveList(), formatTimestamp(), plural(), SessionBadges(), SessionRow()
 
 ## Knowledge Gaps
 - **91 isolated node(s):** `CrisisPattern`, `THERAPIST`, `COMPANION`, `SPIRITUAL`, `INTERFAITH` (+86 more)
-  These have ≤1 connection - possible missing edges. (Counts symbols only; 410 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **22 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges. (Counts symbols only; 473 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **69 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `ChatViewModel` connect `ChatViewModel` to `NarrativeViewModel.kt`, `OnboardingViewModel`, `VoiceAction`, `GraphHolder`, `LocalModel`, `SessionRepository`, `CrisisResourcesTest`, `ModelSettings`, `ChatScreen.kt`, `ActiveSessionHolder`, `Provider`, `Test`, `Persona`, `Inject`, `NetworkModule.kt`, `ChatViewModel.kt`, `UnusableModels`, `TherapyModality`, `DataModule.kt`, `CloudTtsService`, `ModelChoice`, `.speak()`, `.summarise()`?**
-  _High betweenness centrality (0.094) - this node is a cross-community bridge._
-- **Why does `GraphNode` connect `GraphNode` to `GraphHolder`, `GraphViewModel.kt`, `RoomStatsRepositoryTest`, `DashboardTest`, `.generate()`, `GraphScreen.kt`, `SessionMappersTest.kt`, `SessionRepository`, `HttpProviderCatalog.kt`, `TherapyInsights`, `GraphExportTest`, `RoomGraphRepositoryTest.kt`, `.detect()`, `TherapyModality`, `DataModule.kt`, `assertequals`?**
-  _High betweenness centrality (0.084) - this node is a cross-community bridge._
-- **Why does `Message` connect `Message` to `NarrativeViewModel.kt`, `RoomStatsRepositoryTest`, `CloudChatServiceTest`, `SessionRepository`, `HttpProviderCatalog.kt`, `ChatViewModel`, `ChatScreen.kt`, `ActiveSessionHolder`, `Persona`, `ChatViewModel.kt`, `CloudChatServiceTest.kt`, `TherapyModality`, `CloudChatService`, `Role`, `NarrativeViewModelTest.kt`, `ChatProtocol`, `ChatProtocolTest`, `LlamaCppLocalService`, `SessionMappersTest.kt`, `AnthropicProtocol`, `.emit()`?**
-  _High betweenness centrality (0.082) - this node is a cross-community bridge._
-- **Are the 5 inferred relationships involving `GraphNode` (e.g. with `.node()` and `.restoreAdvancesCounterPastRestoredIds()`) actually correct?**
-  _`GraphNode` has 5 INFERRED edges - model-reasoned connections that need verification._
+- **Why does `Message` connect `Message` to `ChatViewModel`, `ChatScreenTest`, `RoomStatsRepositoryTest`, `ChatViewModelTest`, `SessionRepository`, `ChatViewModel.kt`, `NarrativeViewModelTest`, `HttpProviderCatalog.kt`, `CloudChatServiceTest`, `NarrativeViewModel.kt`, `CloudChatServiceTest.kt`, `ChatViewModelTest.kt`, `SpiritualTradition`, `Persona`, `ChatScreen.kt`, `.buildRequest()`, `TherapyModality`, `ChatProtocolTest`, `CompanionPersonality`, `CloudChatService`, `ChatProtocol`, `ChatScreenTest.kt`, `LlamaCppLocalService`, `RoomSessionRepositoryTest.kt`, `LocalLLMService`, `Role`, `AnthropicProtocol`, `SessionMappersTest.kt`, `FakeSessionRepository`?**
+  _High betweenness centrality (0.091) - this node is a cross-community bridge._
 - **What connects `CrisisPattern`, `THERAPIST`, `COMPANION` to the rest of the system?**
   _91 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `NarrativeViewModel.kt` be split into smaller, more focused modules?**
-  _Cohesion score 0.05009276437847866 - nodes in this community are weakly interconnected._
-- **Should `OnboardingViewModel` be split into smaller, more focused modules?**
-  _Cohesion score 0.05593607305936073 - nodes in this community are weakly interconnected._
+- **Should `VoiceConversationTest` be split into smaller, more focused modules?**
+  _Cohesion score 0.05917721518987342 - nodes in this community are weakly interconnected._
+- **Why does `GraphNode` connect `GraphNode` to `CompanionPersonality`, `TherapyModality`, `RoomStatsRepositoryTest`, `DashboardTest`, `ChatScreenTest.kt`, `GraphEdge`, `DashboardViewModel.kt`, `GraphViewModel.kt`, `RoomGraphRepositoryTest.kt`, `ChatViewModelTest.kt`, `GraphExportTest.kt`, `.generate()`, `.detect()`, `GraphExportTest`, `GraphHolder`, `assertequals`, `SessionMappersTest.kt`, `GraphScreen.kt`?**
+  _High betweenness centrality (0.063) - this node is a cross-community bridge._
+- **Should `ChatViewModel` be split into smaller, more focused modules?**
+  _Cohesion score 0.057539682539682536 - nodes in this community are weakly interconnected._
+- **Why does `ChatViewModel` connect `ChatViewModel` to `VoiceConversationTest`, `ChatScreenTest`, `LocalModel`, `ChatViewModelTest`, `SessionRepository`, `ContinuousSpeechRecognizer`, `ActiveSessionHolder`, `CrisisResourcesTest`, `ChatViewModel.kt`, `Provider`, `FakeSecureSettings`, `Test`, `GraphHolder`, `Persona`, `ChatScreen.kt`, `TherapyModality`, `OpenRouterCatalog`, `UnusableModels`, `ModelChoice`, `IntakeStore`, `launch`, `DataModule.kt`, `LocalLLMService`?**
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+- **Should `ChatScreenTest` be split into smaller, more focused modules?**
+  _Cohesion score 0.05701754385964912 - nodes in this community are weakly interconnected._

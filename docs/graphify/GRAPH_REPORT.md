@@ -1,7 +1,7 @@
-# Graph Report - selfward-android  (2026-10-05)
+# Graph Report - selfward-android  (2026-10-12)
 
 ## Corpus Check
-- Large corpus: 252 files · ~605,577 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
+- Large corpus: 252 files · ~663,054 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder.
 
 ## Summary
 - 2917 nodes · 7771 edges · 139 communities (70 shown, 69 thin omitted)
@@ -445,7 +445,7 @@ Cohesion: 0.46
 Nodes (7): SessionStats, ActiveList(), ArchiveList(), formatTimestamp(), plural(), SessionBadges(), SessionRow()
 
 ## Knowledge Gaps
-- **91 isolated node(s):** `CrisisPattern`, `THERAPIST`, `COMPANION`, `SPIRITUAL`, `INTERFAITH` (+86 more)
+- **74 isolated node(s):** `THERAPIST`, `COMPANION`, `SPIRITUAL`, `INTERFAITH`, `STOIC` (+69 more)
   These have ≤1 connection - possible missing edges. (Counts symbols only; 473 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **69 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -454,8 +454,8 @@ _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Message` connect `Message` to `ChatViewModel`, `ChatScreenTest`, `RoomStatsRepositoryTest`, `ChatViewModelTest`, `SessionRepository`, `ChatViewModel.kt`, `NarrativeViewModelTest`, `HttpProviderCatalog.kt`, `CloudChatServiceTest`, `NarrativeViewModel.kt`, `CloudChatServiceTest.kt`, `ChatViewModelTest.kt`, `SpiritualTradition`, `Persona`, `ChatScreen.kt`, `.buildRequest()`, `TherapyModality`, `ChatProtocolTest`, `CompanionPersonality`, `CloudChatService`, `ChatProtocol`, `ChatScreenTest.kt`, `LlamaCppLocalService`, `RoomSessionRepositoryTest.kt`, `LocalLLMService`, `Role`, `AnthropicProtocol`, `SessionMappersTest.kt`, `FakeSessionRepository`?**
   _High betweenness centrality (0.091) - this node is a cross-community bridge._
-- **What connects `CrisisPattern`, `THERAPIST`, `COMPANION` to the rest of the system?**
-  _91 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **What connects `THERAPIST`, `COMPANION`, `SPIRITUAL` to the rest of the system?**
+  _74 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `VoiceConversationTest` be split into smaller, more focused modules?**
   _Cohesion score 0.05917721518987342 - nodes in this community are weakly interconnected._
 - **Why does `GraphNode` connect `GraphNode` to `CompanionPersonality`, `TherapyModality`, `RoomStatsRepositoryTest`, `DashboardTest`, `ChatScreenTest.kt`, `GraphEdge`, `DashboardViewModel.kt`, `GraphViewModel.kt`, `RoomGraphRepositoryTest.kt`, `ChatViewModelTest.kt`, `GraphExportTest.kt`, `.generate()`, `.detect()`, `GraphExportTest`, `GraphHolder`, `assertequals`, `SessionMappersTest.kt`, `GraphScreen.kt`?**

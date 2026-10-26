@@ -1,7 +1,7 @@
-# Graph Report - selfward-android  (2026-10-19)
+# Graph Report - selfward-android  (2026-10-26)
 
 ## Corpus Check
-- 241 files · ~424,938 words
+- 241 files · ~372,045 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 19 file(s) not represented in the graph (top: .xml 12, .properties 2, (none) 1)
 
